@@ -40,31 +40,6 @@ class UpdateTorrentRequestRequest extends FormRequest
                 'required',
                 'max:180',
             ],
-            'imdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'tvdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'tmdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'mal' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'igdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
             'category_id' => [
                 'required',
                 'exists:categories,id',
@@ -72,10 +47,6 @@ class UpdateTorrentRequestRequest extends FormRequest
             'type_id' => [
                 'required',
                 'exists:types,id',
-            ],
-            'resolution_id' => [
-                'nullable',
-                'exists:resolutions,id',
             ],
             'description' => [
                 'required',

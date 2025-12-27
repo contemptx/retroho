@@ -8,7 +8,7 @@
                     role="button"
                 >
                     <i class="{{ config('other.font-awesome') }} fa-download"></i>
-                    {{ __('common.download') }}
+                    Torrent {{ __('common.download') }}
                 </a>
             @else
                 <a
@@ -16,7 +16,7 @@
                     href="{{ route('download', ['id' => $torrent->id]) }}"
                 >
                     <i class="{{ config('other.font-awesome') }} fa-download"></i>
-                    {{ __('common.download') }}
+                    Torrent {{ __('common.download') }}
                 </a>
             @endif
         @else
@@ -29,6 +29,18 @@
             </a>
         @endif
     </li>
+@if ($torrent->external_download_link)
+    <li class="form__group form__group--short-horizontal">
+                <a
+                    class="form__button form__button--filled form__button--centered"
+                    href="{{ $torrent->external_download_link }}"
+                    role="button"
+                >
+                    <i class="{{ config('other.font-awesome') }} fa-link"></i>
+                    External {{ __('common.download') }}
+                </a>
+    </li>
+@endif
     @if ($fileExists)
         @if ($torrent->free !== 100 && config('other.freeleech') == false && ! $personal_freeleech && $user->group->is_freeleech == 0 && ! $torrent->freeleechToken_exists)
             <li class="form__group form__group--short-horizontal">
@@ -110,250 +122,6 @@
         </li>
     @endif
 
-    <li x-data="dialog" class="form__group form__group--short-horizontal">
-        <button
-            class="form__button form__button--outlined form__button--centered"
-            x-bind="showDialog"
-        >
-            <i class="{{ config('other.font-awesome') }} fa-coins"></i>
-            {{ __('torrent.leave-tip') }}
-        </button>
-        <dialog class="dialog" x-bind="dialogElement">
-            <h4 class="dialog__heading">
-                {{ __('torrent.tip-jar') }}
-            </h4>
-            <form
-                class="dialog__form"
-                method="POST"
-                action="{{ route('users.torrent_tips.store', ['user' => auth()->user()]) }}"
-                x-bind="dialogForm"
-            >
-                @csrf
-                <input type="hidden" name="torrent_id" value="{{ $torrent->id }}" />
-                <div>
-                    {!! __('torrent.torrent-tips', ['total' => $total_tips, 'user' => $user_tips]) !!}.
-                    <span>({{ __('torrent.torrent-tips-desc') }})</span>
-                </div>
-                <div class="form__group">
-                    <input
-                        id="bon"
-                        class="form__text"
-                        list="torrent_quick_tips"
-                        name="bon"
-                        placeholder=" "
-                        type="text"
-                        pattern="[0-9]*"
-                        inputmode="numeric"
-                    />
-                    <label class="form__label form__label--floating" for="bon">
-                        {{ __('torrent.define-tip-amount') }}
-                    </label>
-                    <datalist id="torrent_quick_tips">
-                        <option value="1000"></option>
-                        <option value="2000"></option>
-                        <option value="5000"></option>
-                        <option value="10000"></option>
-                        <option value="20000"></option>
-                        <option value="50000"></option>
-                        <option value="100000"></option>
-                    </datalist>
-                </div>
-                <div class="form__group">
-                    <button class="form__button form__button--filled">
-                        {{ __('torrent.leave-tip') }}
-                    </button>
-                </div>
-            </form>
-        </dialog>
-    </li>
-    <li x-data="dialog" class="form__group form__group--short-horizontal">
-        <button
-            class="form__button form__button--outlined form__button--centered"
-            title="{{ __('common.edit') }}"
-            x-bind="showDialog"
-        >
-            <i class="{{ config('other.font-awesome') }} fa-file"></i>
-            {{ __('torrent.show-files') }}
-        </button>
-        <dialog class="dialog dialog--auto-width" x-bind="dialogElement">
-            <header class="dialog__header">
-                <h4 class="dialog__heading">
-                    {{ __('common.files') }}
-                </h4>
-                <div class="dialog__actions">
-                    <div class="dialog__action">
-                        {{ __('torrent.info-hash') }}:
-                        {{ bin2hex($torrent->info_hash) }}
-                    </div>
-                </div>
-            </header>
-            <div x-bind="dialogForm" x-data="{ tab: 'hierarchy' }">
-                <menu class="panel__tabs">
-                    <li
-                        class="panel__tab"
-                        role="tab"
-                        x-bind:class="tab === 'hierarchy' && 'panel__tab--active'"
-                        x-on:click="tab = 'hierarchy'"
-                    >
-                        Hierarchy
-                    </li>
-                    <li
-                        class="panel__tab"
-                        role="tab"
-                        x-bind:class="tab === 'list' && 'panel__tab--active'"
-                        x-on:click="tab = 'list'"
-                    >
-                        List
-                    </li>
-                </menu>
-                <div class="dialog__form" x-show="tab === 'hierarchy'" style="gap: 0">
-                    @if ($torrent->folder !== null)
-                        <span
-                            style="
-                                display: grid;
-                                grid-template-areas: 'icon folder count . size';
-                                grid-template-columns: 24px auto auto 1fr auto;
-                                align-items: center;
-                                padding-bottom: 8px;
-                            "
-                        >
-                            <i
-                                class="{{ config('other.font-awesome') }} fa-folder"
-                                style="grid-area: icon; padding-right: 4px"
-                            ></i>
-                            <span style="padding-right: 4px; word-break: break-all">
-                                {{ $torrent->folder }}
-                            </span>
-                            <span style="grid-area: count; padding-right: 4px">
-                                ({{ $torrent->files()->count() }})
-                            </span>
-                            <span
-                                class="text-info"
-                                style="grid-area: size; white-space: nowrap; text-align: right"
-                                title="{{ $torrent->size }}&nbsp;B"
-                            >
-                                {{ App\Helpers\StringHelper::formatBytes($torrent->size, 2) }}
-                            </span>
-                        </span>
-                    @endif
-
-                    @foreach ($files = $torrent->files->sortBy(fn ($file) => (($dir = dirname($file->name)) === '.' ? chr(0xFF) : $dir."/".chr(0xFF)).basename($file->name), SORT_NATURAL)->values() as $file)
-                        @php
-                            $prevNodes = explode('/', $files[$loop->index - 1]->name ?? ' ');
-                        @endphp
-
-                        @foreach ($nodes = explode("/", $file->name) as $node)
-                            @if (($prevNodes[$loop->index] ?? '') != $node)
-                                @for ($depth = count($prevNodes); $depth > $loop->index; $depth--)
-                                    {{-- format-ignore-start --}}
-                                    </details>
-                                    {{-- format-ignore-end --}}
-                                @endfor
-
-                                @for ($depth = $loop->index; $depth < $loop->count; $depth++)
-                                    {{-- format-ignore-start --}}
-                                    <details style="margin-left: 20px;">
-                                    {{-- format-ignore-end --}}
-                                    <summary
-                                        @style([
-                                            'padding: 8px;',
-                                            'list-style-position: outside',
-                                            'cursor: pointer' => $depth !== $loop->count - 1,
-                                            'list-style-type: none' => $depth === $loop->count - 1,
-                                        ])
-                                    >
-                                        <span
-                                            style="
-                                                display: grid;
-                                                grid-template-areas: 'icon2 folder count . size';
-                                                grid-template-columns: 24px auto auto 1fr auto;
-                                                gap: 4px;
-                                            "
-                                        >
-                                            @if ($depth == $loop->count - 1)
-                                                <i
-                                                    class="{{ config('other.font-awesome') }} fa-file"
-                                                    style="grid-area: icon2"
-                                                ></i>
-                                                <span style="word-break: break-all">
-                                                    {{ $nodes[$depth] }}
-                                                </span>
-                                                <span
-                                                    style="
-                                                        grid-area: size;
-                                                        white-space: nowrap;
-                                                        text-align: right;
-                                                    "
-                                                    title="{{ $file->size }}&nbsp;B"
-                                                >
-                                                    {{ $file->getSize() }}
-                                                </span>
-                                            @else
-                                                <i
-                                                    class="{{ config('other.font-awesome') }} fa-folder"
-                                                    style="grid-area: icon2"
-                                                ></i>
-                                                <span>
-                                                    {{ $nodes[$depth] }}
-                                                </span>
-                                                @php
-                                                    $filteredFiles = $files->filter(
-                                                        fn ($value) => str_starts_with(
-                                                            $value->name,
-                                                            implode('/', array_slice($nodes, 0, $depth + 1)) . '/'
-                                                        )
-                                                    );
-                                                @endphp
-
-                                                <span style="grid-area: count">
-                                                    ({{ $filteredFiles->count() }})
-                                                </span>
-                                                <span
-                                                    class="text-info"
-                                                    style="
-                                                        grid-area: size;
-                                                        white-space: nowrap;
-                                                        text-align: right;
-                                                    "
-                                                    title="{{ $filteredFiles->sum('size') }}&nbsp;B"
-                                                >
-                                                    {{ App\Helpers\StringHelper::formatBytes($filteredFiles->sum('size'), 2) }}
-                                                </span>
-                                            @endif
-                                        </span>
-                                    </summary>
-                                @endfor
-
-                                @break
-                            @endif
-                        @endforeach
-                    @endforeach
-                </div>
-                <div class="data-table-wrapper" x-show="tab === 'list'">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>{{ __('common.name') }}</th>
-                                <th>{{ __('torrent.size') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($torrent->files as $index => $file)
-                                <tr>
-                                    <td style="text-align: right">{{ $index + 1 }}</td>
-                                    <td style="text-align: left">{{ $file->name }}</td>
-                                    <td style="text-align: right" title="{{ $file->size }}&nbsp;B">
-                                        {{ $file->getSize() }}
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </dialog>
-    </li>
     <li class="form__group form__group--short-horizontal">
         @livewire('bookmark-button', [
             'torrent' => $torrent,
@@ -362,51 +130,6 @@
             'bookmarksCount' => $torrent->bookmarks_count ?? 0,
         ])
     </li>
-    @if ($playlists->count() > 0)
-        <li x-data="dialog" class="form__group form__group--short-horizontal">
-            <button
-                class="form__button form__button--outlined form__button--centered"
-                x-bind="showDialog"
-            >
-                <i class="{{ config('other.font-awesome') }} fa-list-ol"></i>
-                {{ __('torrent.add-to-playlist') }}
-            </button>
-            <dialog class="dialog" x-bind="dialogElement">
-                <h4 class="dialog__heading">Add Torrent To Playlist</h4>
-                <form
-                    class="dialog__form"
-                    method="POST"
-                    action="{{ route('playlist_torrents.store') }}"
-                    x-bind="dialogForm"
-                >
-                    @csrf
-                    <input type="hidden" name="torrent_id" value="{{ $torrent->id }}" />
-                    <p class="form__group">
-                        <select id="playlist_id" name="playlist_id" class="form__select">
-                            @foreach ($playlists as $playlist)
-                                <option value="{{ $playlist->id }}">{{ $playlist->name }}</option>
-                            @endforeach
-                        </select>
-                        <label for="playlist_id" class="form__label form__label--floating">
-                            Your Playlists
-                        </label>
-                    </p>
-                    <p class="form__group" style="text-align: left">
-                        <button class="form__button form__button--filled">
-                            {{ __('common.save') }}
-                        </button>
-                        <button
-                            formmethod="dialog"
-                            formnovalidate
-                            class="form__button form__button--outlined"
-                        >
-                            {{ __('common.cancel') }}
-                        </button>
-                    </p>
-                </form>
-            </dialog>
-        </li>
-    @endif
 
     @if ($torrent->seeders <= 2 &&
         /* $history is used inside the resurrection code below and assumes is set if torrent->seeders are equal to 0 */
@@ -547,74 +270,4 @@
             </form>
         </dialog>
     </li>
-    @if ($user->group->is_modo)
-        @if (! $torrent->trump_exists)
-            <li x-data="dialog" class="form__group form__group--short-horizontal">
-                <button
-                    class="form__button form__button--outlined form__button--centered"
-                    x-bind="showDialog"
-                >
-                    <i class="{{ config('other.font-awesome') }} fa-skull-crossbones"></i>
-                    Mark Trumpable
-                </button>
-                <dialog class="dialog" x-bind="dialogElement">
-                    <h4 class="dialog__heading">
-                        Trump {{ strtolower(__('torrent.torrent')) }}:
-                        {{ $torrent->name }}
-                    </h4>
-                    <form
-                        class="dialog__form"
-                        method="POST"
-                        action="{{ route('torrent.trump.store', ['torrent' => $torrent]) }}"
-                        x-bind="dialogForm"
-                    >
-                        @csrf
-                        <input type="hidden" name="torrent_id" value="{{ $torrent->id }}" />
-                        <p class="form__group">
-                            <textarea
-                                id="reason"
-                                class="form__textarea"
-                                name="reason"
-                                required
-                            ></textarea>
-                            <label
-                                for="trump_reason"
-                                class="form__label form__label--floating"
-                                for="reason"
-                            >
-                                {{ __('common.reason') }}
-                            </label>
-                        </p>
-                        <p class="form__group" style="text-align: left">
-                            <button class="form__button form__button--filled">
-                                {{ __('common.save') }}
-                            </button>
-                            <button
-                                formmethod="dialog"
-                                formnovalidate
-                                class="form__button form__button--outlined"
-                            >
-                                {{ __('common.cancel') }}
-                            </button>
-                        </p>
-                    </form>
-                </dialog>
-            </li>
-        @else
-            <li class="form__group form__group--short-horizontal">
-                <form
-                    action="{{ route('torrent.trump.destroy', ['torrent' => $torrent]) }}"
-                    method="POST"
-                    style="display: inline"
-                >
-                    @csrf
-                    @method('DELETE')
-                    <button class="form__button form__button--outlined form__button--centered">
-                        <i class="{{ config('other.font-awesome') }} fa-skull-crossbones"></i>
-                        Unmark Trumpable
-                    </button>
-                </form>
-            </li>
-        @endif
-    @endif
 </menu>

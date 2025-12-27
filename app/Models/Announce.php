@@ -54,7 +54,7 @@ class Announce extends Model
     /**
      * Belongs to a torrent.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, self>
      */
     public function torrents(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -64,7 +64,7 @@ class Announce extends Model
     /**
      * Belongs to a user.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function requests(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

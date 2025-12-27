@@ -20,19 +20,9 @@ use App\Http\Requests\StorePollVoteRequest;
 use App\Models\Option;
 use App\Models\Poll;
 use App\Models\Voter;
-use App\Repositories\ChatRepository;
 
-/**
- * @see \Tests\Todo\Feature\Http\Controllers\Staff\PollControllerTest
- */
 class PollVoteController extends Controller
 {
-    /**
-     * PollController Constructor.
-     */
-    public function __construct(private readonly ChatRepository $chatRepository)
-    {
-    }
 
     /**
      * Vote On A Poll.
@@ -47,10 +37,6 @@ class PollVoteController extends Controller
         Option::whereIn('id', $request->validated('options'))->increment('votes');
 
         $poll->users()->attach($request->user());
-
-        $this->chatRepository->systemMessage(
-            \sprintf('[url=%s]%s[/url] has voted on poll [url=%s]%s[/url]', href_profile($request->user()), $request->user()->username, href_poll($poll), $poll->title)
-        );
 
         return to_route('polls.votes.index', ['poll' => $poll])
             ->withSuccess(trans('poll.vote-counted'));

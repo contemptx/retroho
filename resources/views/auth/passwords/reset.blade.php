@@ -33,8 +33,7 @@
                     @csrf
                     <input type="hidden" name="token" value="{{ request()->route('token') }}" />
                     <a class="auth-form__branding" href="{{ route('home.index') }}">
-                        <i class="fal fa-tv-retro"></i>
-                        <span class="auth-form__site-logo">{{ \config('other.title') }}</span>
+                        <img src="{{ url('favicon.ico') }}" style="width: 85px;" alt="{{ \config('other.title') }}" />
                     </a>
                     @if (Session::has('warning') || Session::has('success') || Session::has('info'))
                         <ul class="auth-form__important-infos">

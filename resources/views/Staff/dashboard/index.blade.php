@@ -50,68 +50,7 @@
                             {{ __('backup.manager') }}
                         </a>
                     </p>
-                    <p class="form__group form__group--horizontal">
-                        <a
-                            class="form__button form__button--text"
-                            href="{{ route('staff.commands.index') }}"
-                        >
-                            <i class="fab fa-laravel"></i>
-                            Commands
-                        </a>
-                    </p>
                 @endif
-            </div>
-        </section>
-        <section class="panelV2 panel--grid-item">
-            <h2 class="panel__heading">
-                <i class="{{ config('other.font-awesome') }} fa-wrench"></i>
-                {{ __('staff.chat-tools') }}
-            </h2>
-            <div class="panel__body">
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.statuses.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-comment-dots"></i>
-                        {{ __('staff.statuses') }}
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.chatrooms.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-comment-dots"></i>
-                        {{ __('staff.rooms') }}
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.bots.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-robot"></i>
-                        {{ __('staff.bots') }}
-                    </a>
-                </p>
-                <div class="form__group form__group--horizontal">
-                    <form
-                        method="POST"
-                        action="{{ route('staff.flush.chat') }}"
-                        x-data="confirmation"
-                    >
-                        @csrf
-                        <button
-                            x-on:click.prevent="confirmAction"
-                            data-b64-deletion-message="{{ base64_encode('Are you sure you want to delete all chatbox messages in all chatrooms (including private chatbox messages)?') }}"
-                            class="form__button form__button--text"
-                        >
-                            <i class="{{ config('other.font-awesome') }} fa-broom"></i>
-                            {{ __('staff.flush-chat') }}
-                        </button>
-                    </form>
-                </div>
             </div>
         </section>
         <section class="panelV2 panel--grid-item">
@@ -127,15 +66,6 @@
                     >
                         <i class="{{ config('other.font-awesome') }} fa-newspaper"></i>
                         {{ __('staff.articles') }}
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.bon_exchanges.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-coins"></i>
-                        {{ __('staff.bon-exchange') }}
                     </a>
                 </p>
                 <p class="form__group form__group--horizontal">
@@ -242,33 +172,6 @@
                 <p class="form__group form__group--horizontal">
                     <a
                         class="form__button form__button--text"
-                        href="{{ route('staff.resolutions.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-columns"></i>
-                        {{ __('staff.torrent-resolutions') }}
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.regions.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-columns"></i>
-                        Torrent Regions
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.distributors.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-columns"></i>
-                        Torrent Distributors
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
                         href="{{ route('staff.automatic_torrent_freeleeches.index') }}"
                     >
                         <i class="{{ config('other.font-awesome') }} fa-columns"></i>
@@ -305,28 +208,10 @@
                 <p class="form__group form__group--horizontal">
                     <a
                         class="form__button form__button--text"
-                        href="{{ route('staff.torrent_trumps.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-columns"></i>
-                        Trumps
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
                         href="{{ route('staff.rss.index') }}"
                     >
                         <i class="{{ config('other.font-awesome') }} fa-rss"></i>
                         {{ __('staff.rss') }}
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.media_languages.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-columns"></i>
-                        {{ __('common.media-languages') }}
                     </a>
                 </p>
                 <p class="form__group form__group--horizontal">
@@ -512,15 +397,6 @@
                         {{ __('torrent.uploader') }} {{ __('common.stats') }}
                     </a>
                 </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.internals.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-magic"></i>
-                        Internals
-                    </a>
-                </p>
                 @if (auth()->user()->group->is_admin)
                     <p class="form__group form__group--horizontal">
                         <a
@@ -565,15 +441,6 @@
                     >
                         <i class="{{ config('other.font-awesome') }} fa-file"></i>
                         {{ __('staff.failed-login-log') }}
-                    </a>
-                </p>
-                <p class="form__group form__group--horizontal">
-                    <a
-                        class="form__button form__button--text"
-                        href="{{ route('staff.gifts.index') }}"
-                    >
-                        <i class="{{ config('other.font-awesome') }} fa-file"></i>
-                        {{ __('staff.gifts-log') }}
                     </a>
                 </p>
                 <p class="form__group form__group--horizontal">

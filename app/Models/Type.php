@@ -30,8 +30,6 @@ use Illuminate\Database\Eloquent\Model;
 class Type extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\TypeFactory> */
     use HasFactory;
 
     /**
@@ -51,7 +49,7 @@ class Type extends Model
     /**
      * Has Many Torrents.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Torrent, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Torrent>
      */
     public function torrents(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -61,10 +59,20 @@ class Type extends Model
     /**
      * Has Many Torrent Requests.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<TorrentRequest, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<TorrentRequest>
      */
     public function requests(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(TorrentRequest::class);
+    }
+
+    /**
+     * Has Many Nzbs.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Nzb, $this>
+     */
+    public function nzbs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Nzb::class);
     }
 }

@@ -56,18 +56,6 @@ class Kernel extends HttpKernel
             \HDVinnie\SecureHeaders\SecureHeadersMiddleware::class,
             'throttle:web',
         ],
-        'chat' => [
-            Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\Session\Middleware\AuthenticateSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            Middleware\VerifyCsrfToken::class,
-            Middleware\UpdateLastAction::class,
-            \HDVinnie\SecureHeaders\SecureHeadersMiddleware::class,
-            'throttle:chat',
-        ],
         'api' => [
             'throttle:api',
         ],

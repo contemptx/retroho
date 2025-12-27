@@ -20,16 +20,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Staff\StoreRssRequest;
 use App\Http\Requests\Staff\UpdateRssRequest;
 use App\Models\Category;
-use App\Models\Genre;
-use App\Models\Resolution;
 use App\Models\Rss;
 use App\Models\Type;
 use Illuminate\Http\Request;
 use Exception;
 
-/**
- * @see \Tests\Todo\Feature\Http\Controllers\RssControllerTest
- */
 class RssController extends Controller
 {
     /**
@@ -50,8 +45,6 @@ class RssController extends Controller
         return view('Staff.rss.create', [
             'categories'  => Category::select(['id', 'name', 'position'])->orderBy('position')->get(),
             'types'       => Type::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'resolutions' => Resolution::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'genres'      => Genre::orderBy('name')->get(),
             'user'        => $request->user(),
         ]);
     }
@@ -83,8 +76,6 @@ class RssController extends Controller
         return view('Staff.rss.edit', [
             'categories'  => Category::select(['id', 'name', 'position'])->orderBy('position')->get(),
             'types'       => Type::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'resolutions' => Resolution::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'genres'      => Genre::orderBy('name')->get(),
             'user'        => $request->user(),
             'rss'         => $rss,
         ]);

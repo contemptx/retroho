@@ -33,8 +33,6 @@ use Illuminate\Database\Eloquent\Model;
 class Watchlist extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\WatchlistFactory> */
     use HasFactory;
 
     /**
@@ -47,7 +45,7 @@ class Watchlist extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -60,7 +58,7 @@ class Watchlist extends Model
     /**
      * Belongs To A Uploader.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function author(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

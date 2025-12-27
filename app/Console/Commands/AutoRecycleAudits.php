@@ -29,14 +29,14 @@ class AutoRecycleAudits extends Command
      *
      * @var string
      */
-    protected $signature = 'auto:recycle_audits';
+    protected $signature = 'auto:recycle_activity_log';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Recycle Audits Once X Days Old.';
+    protected $description = 'Recycle Activity From Log Once 30 Days Old.';
 
     /**
      * Execute the console command.
@@ -52,6 +52,6 @@ class AutoRecycleAudits extends Command
             $audit->delete();
         }
 
-        $this->comment('Automated Audit Recycle Command Complete');
+        $this->comment('Automated Purge Old Audits Command Complete');
     }
 }

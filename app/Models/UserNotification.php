@@ -57,7 +57,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserNotification extends Model
 {
-    /** @use HasFactory<\Database\Factories\UserNotificationFactory> */
     use HasFactory;
 
     /**
@@ -96,7 +95,7 @@ class UserNotification extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

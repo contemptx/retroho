@@ -31,8 +31,6 @@ use Illuminate\Database\Eloquent\Model;
 class PersonalFreeleech extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\PersonalFreeleechFactory> */
     use HasFactory;
 
     /**

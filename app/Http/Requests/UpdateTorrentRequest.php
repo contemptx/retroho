@@ -55,16 +55,6 @@ class UpdateTorrentRequest extends FormRequest
                 'required',
                 'max:2097152'
             ],
-            'mediainfo' => [
-                'nullable',
-                'sometimes',
-                'max:2097152',
-            ],
-            'bdinfo' => [
-                'nullable',
-                'sometimes',
-                'max:2097152',
-            ],
             'category_id' => [
                 'required',
                 'exists:categories,id',
@@ -73,87 +63,25 @@ class UpdateTorrentRequest extends FormRequest
                 'required',
                 'exists:types,id',
             ],
-            'resolution_id' => [
-                Rule::when($category->movie_meta || $category->tv_meta, 'required'),
-                Rule::when(!$category->movie_meta && !$category->tv_meta, 'nullable'),
-                'exists:resolutions,id',
-            ],
-            'region_id' => [
-                'nullable',
-                'exists:regions,id',
-            ],
-            'distributor_id' => [
-                'nullable',
-                'exists:distributors,id',
-            ],
-            'imdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'tvdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'tmdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'mal' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'igdb' => [
-                'required',
-                'decimal:0',
-                'min:0',
-            ],
-            'season_number' => [
-                Rule::when($category->tv_meta, 'required'),
-                Rule::when(!$category->tv_meta, 'nullable'),
-                'decimal:0',
-                'min:0',
-            ],
-            'episode_number' => [
-                Rule::when($category->tv_meta, 'required'),
-                Rule::when(!$category->tv_meta, 'nullable'),
-                'decimal:0',
-                'min:0',
-            ],
             'anon' => [
                 'required',
                 'boolean',
                 Rule::when(Torrent::withoutGlobalScope(ApprovedScope::class)->find($request->route('id'))->user_id !== $request->user()->id && !$request->user()->group->is_modo, 'exclude'),
-            ],
-            'stream' => [
-                'required',
-                'boolean',
-            ],
-            'sd' => [
-                'required',
-                'boolean',
-            ],
-            'personal_release' => [
-                'required',
-                'boolean',
-            ],
-            'internal' => [
-                'sometimes',
-                'boolean',
-                Rule::when(!$request->user()->group->is_modo && !$request->user()->group->is_internal, 'prohibited'),
             ],
             'free' => [
                 'sometimes',
                 'between:0,100',
                 Rule::when(!$request->user()->group->is_modo && !$request->user()->group->is_internal, 'prohibited'),
             ],
-            'refundable' => [
+	    'sku' => [
+                'nullable',
                 'sometimes',
-                'boolean',
-                Rule::when(!$request->user()->group->is_modo && !$request->user()->group->is_internal, 'prohibited'),
+                'string',
+            ],
+            'external_download_link' => [
+                'nullable',
+                'sometimes',
+                'string',
             ],
         ];
     }

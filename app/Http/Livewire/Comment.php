@@ -16,28 +16,13 @@ declare(strict_types=1);
 
 namespace App\Http\Livewire;
 
-use App\Achievements\UserMade100Comments;
-use App\Achievements\UserMade200Comments;
-use App\Achievements\UserMade300Comments;
-use App\Achievements\UserMade400Comments;
-use App\Achievements\UserMade500Comments;
-use App\Achievements\UserMade50Comments;
-use App\Achievements\UserMade600Comments;
-use App\Achievements\UserMade700Comments;
-use App\Achievements\UserMade800Comments;
-use App\Achievements\UserMade900Comments;
-use App\Achievements\UserMadeComment;
-use App\Achievements\UserMadeTenComments;
 use App\Models\Article;
-use App\Models\Collection;
-use App\Models\Playlist;
 use App\Models\Ticket;
 use App\Models\Torrent;
 use App\Models\TorrentRequest;
 use App\Models\User;
 use App\Notifications\NewComment;
 use App\Notifications\NewCommentTag;
-use App\Repositories\ChatRepository;
 use App\Traits\CastLivewireProperties;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Component;
@@ -46,9 +31,7 @@ class Comment extends Component
 {
     use CastLivewireProperties;
 
-    protected ChatRepository $chatRepository;
-
-    public null|Article|Collection|Playlist|Ticket|Torrent|TorrentRequest $model;
+    public null|Article|Ticket|Torrent|TorrentRequest $model;
 
     public \App\Models\Comment $comment;
 
@@ -70,11 +53,6 @@ class Comment extends Component
     public bool $isEditing = false;
 
     public string $editState = '';
-
-    final public function boot(ChatRepository $chatRepository): void
-    {
-        $this->chatRepository = $chatRepository;
-    }
 
     final public function mount(): void
     {
@@ -131,7 +109,7 @@ class Comment extends Component
 
     final public function postReply(): void
     {
-        abort_unless($this->model instanceof Ticket || (auth()->user()->can_comment ?? auth()->user()->group->can_comment), 403, __('comment.rights-revoked'));
+        abort_if(!$this->model instanceof Ticket && auth()->user()->can_comment === false, 403, __('comment.rights-revoked'));
 
         abort_if($this->model instanceof Torrent && $this->model->status !== Torrent::APPROVED, 403, __('comment.torrent-status'));
 
@@ -169,7 +147,6 @@ class Comment extends Component
 
                 break;
             case $this->model instanceof Article:
-            case $this->model instanceof Playlist:
             case $this->model instanceof TorrentRequest:
             case $this->model instanceof Torrent:
                 if ($this->user->id !== $this->model->user_id) {
@@ -182,50 +159,6 @@ class Comment extends Component
         // User Tagged Notification
         $users = User::whereIn('username', $this->taggedUsers())->get();
         Notification::sendNow($users, new NewCommentTag($this->model, $reply));
-
-        if (!$this->model instanceof Ticket) {
-            // Auto Shout
-            $username = $reply->anon ? 'An anonymous user' : '[url='.href_profile($this->user).']'.$this->user->username.'[/url]';
-
-            switch (true) {
-                case $this->model instanceof Article:
-                    $this->chatRepository->systemMessage($username.' has left a comment on Article [url='.href_article($this->model).']'.$this->model->title.'[/url]');
-
-                    break;
-                case $this->model instanceof Collection:
-                    $this->chatRepository->systemMessage($username.' has left a comment on Collection [url='.href_collection($this->model).']'.$this->model->name.'[/url]');
-
-                    break;
-                case $this->model instanceof Playlist:
-                    $this->chatRepository->systemMessage($username.' has left a comment on Playlist [url='.href_playlist($this->model).']'.$this->model->name.'[/url]');
-
-                    break;
-                case $this->model instanceof TorrentRequest:
-                    $this->chatRepository->systemMessage($username.' has left a comment on Torrent Request [url='.href_request($this->model).']'.$this->model->name.'[/url]');
-
-                    break;
-                case $this->model instanceof Torrent:
-                    $this->chatRepository->systemMessage($username.' has left a comment on Torrent [url='.href_torrent($this->model).']'.$this->model->name.'[/url]');
-
-                    break;
-            }
-
-            // Achievements
-            if (!$reply->anon) {
-                $this->user->unlock(new UserMadeComment());
-                $this->user->addProgress(new UserMadeTenComments(), 1);
-                $this->user->addProgress(new UserMade50Comments(), 1);
-                $this->user->addProgress(new UserMade100Comments(), 1);
-                $this->user->addProgress(new UserMade200Comments(), 1);
-                $this->user->addProgress(new UserMade300Comments(), 1);
-                $this->user->addProgress(new UserMade400Comments(), 1);
-                $this->user->addProgress(new UserMade500Comments(), 1);
-                $this->user->addProgress(new UserMade600Comments(), 1);
-                $this->user->addProgress(new UserMade700Comments(), 1);
-                $this->user->addProgress(new UserMade800Comments(), 1);
-                $this->user->addProgress(new UserMade900Comments(), 1);
-            }
-        }
 
         $this->reset('replyState', 'isReplying');
 

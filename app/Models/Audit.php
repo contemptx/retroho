@@ -33,7 +33,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Audit extends Model
 {
-    /** @use HasFactory<\Database\Factories\AuditFactory> */
     use HasFactory;
 
     /**
@@ -53,7 +52,7 @@ class Audit extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

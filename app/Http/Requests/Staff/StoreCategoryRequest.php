@@ -48,12 +48,6 @@ class StoreCategoryRequest extends FormRequest
                 'required',
                 'string',
             ],
-            'meta' => [
-                'required',
-                'string',
-                'in:movie,tv,game,music,no',
-                'exclude',
-            ],
             'image' => [
                 'max:10240',
             ],

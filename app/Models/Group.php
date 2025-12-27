@@ -44,10 +44,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property bool     $is_freeleech
  * @property bool     $is_double_upload
  * @property bool     $is_refundable
- * @property bool     $can_chat
- * @property bool     $can_comment
- * @property bool     $can_invite
- * @property bool     $can_request
  * @property bool     $can_upload
  * @property bool     $is_incognito
  * @property bool     $autogroup
@@ -62,35 +58,12 @@ use Illuminate\Database\Eloquent\Model;
 class Group extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\GroupFactory> */
     use HasFactory;
 
     /**
      * Get the attributes that should be cast.
      *
-     * @return array{
-     *     is_uploader: 'bool',
-     *     is_internal: 'bool',
-     *     is_editor: 'bool',
-     *     is_owner: 'bool',
-     *     is_admin: 'bool',
-     *     is_modo: 'bool',
-     *     is_trusted: 'bool',
-     *     is_immune: 'bool',
-     *     is_freeleech: 'bool',
-     *     is_double_upload: 'bool',
-     *     is_refundable: 'bool',
-     *     can_chat: 'bool',
-     *     can_comment: 'bool',
-     *     can_invite: 'bool',
-     *     can_request: 'bool',
-     *     can_upload: 'bool',
-     *     is_incognito: 'bool',
-     *     autogroup: 'bool',
-     *     system_required: 'bool',
-     *     min_ratio: 'decimal:2',
-     * }
+     * @return array{is_uploader: 'bool', is_internal: 'bool', is_editor: 'bool', is_owner: 'bool', is_admin: 'bool', is_modo: 'bool', is_trusted: 'bool', is_immune: 'bool', is_freeleech: 'bool', is_double_upload: 'bool', is_refundable: 'bool', can_upload: 'bool', is_incognito: 'bool', autogroup: 'bool', system_required: 'bool', min_ratio: 'decimal:2'}
      */
     protected function casts(): array
     {
@@ -106,10 +79,6 @@ class Group extends Model
             'is_freeleech'     => 'bool',
             'is_double_upload' => 'bool',
             'is_refundable'    => 'bool',
-            'can_chat'         => 'bool',
-            'can_comment'      => 'bool',
-            'can_invite'       => 'bool',
-            'can_request'      => 'bool',
             'can_upload'       => 'bool',
             'is_incognito'     => 'bool',
             'autogroup'        => 'bool',
@@ -135,7 +104,7 @@ class Group extends Model
     /**
      * Has Many Users.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<User>
      */
     public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -145,7 +114,7 @@ class Group extends Model
     /**
      * Has Many Permissions.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<ForumPermission, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<ForumPermission>
      */
     public function permissions(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

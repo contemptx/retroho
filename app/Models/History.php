@@ -23,6 +23,7 @@ use DateTimeInterface;
 /**
  * App\Models\History.
  *
+ * @property int                             $id
  * @property int                             $user_id
  * @property int                             $torrent_id
  * @property string                          $agent
@@ -42,7 +43,6 @@ use DateTimeInterface;
  */
 class History extends Model
 {
-    /** @use HasFactory<\Database\Factories\HistoryFactory> */
     use HasFactory;
 
     /**
@@ -76,7 +76,7 @@ class History extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -89,7 +89,7 @@ class History extends Model
     /**
      * Belongs To A Torrent.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, self>
      */
     public function torrent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

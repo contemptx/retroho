@@ -68,48 +68,10 @@ class UpdateRssRequest extends FormRequest
                 'sometimes',
                 'exists:types,id',
             ],
-            'resolutions' => [
-                'sometimes',
-                'array',
-                'max:999',
-            ],
-            'resolutions.*' => [
-                'sometimes',
-                'exists:resolutions,id',
-            ],
-            'genres' => [
-                'sometimes',
-                'array',
-                'max:999',
-            ],
-            'genres.*' => [
-                'sometimes',
-                'exists:genres,id',
-            ],
             'position' => [
                 'sometimes',
                 'integer',
                 'max:9999',
-            ],
-            'imdb' => [
-                'sometimes',
-                'nullable',
-                'integer',
-            ],
-            'tvdb' => [
-                'sometimes',
-                'nullable',
-                'integer',
-            ],
-            'tmdb' => [
-                'sometimes',
-                'nullable',
-                'integer',
-            ],
-            'mal' => [
-                'sometimes',
-                'nullable',
-                'integer',
             ],
             'freeleech' => [
                 'sometimes',

@@ -88,6 +88,7 @@ class UserActive extends Component
         return Peer::query()
             ->join('torrents', 'peers.torrent_id', '=', 'torrents.id')
             ->select(
+                'peers.id',
                 'peers.port',
                 'peers.agent',
                 'peers.uploaded',

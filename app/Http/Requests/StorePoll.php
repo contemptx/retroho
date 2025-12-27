@@ -43,11 +43,6 @@ class StorePoll extends FormRequest
                 'required',
                 'min:10'
             ],
-            'expires_at' => [
-                'sometimes',
-                'nullable',
-                'date',
-            ],
             'multiple_choice' => [
                 'required',
                 'boolean'

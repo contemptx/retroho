@@ -18,9 +18,7 @@ namespace App\Http\Controllers;
 
 use App\DTO\TorrentSearchFiltersDTO;
 use App\Models\Category;
-use App\Models\Genre;
 use App\Models\Group;
-use App\Models\Resolution;
 use App\Models\Rss;
 use App\Models\Torrent;
 use App\Models\Type;
@@ -28,9 +26,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Exception;
 
-/**
- * @see \Tests\Todo\Feature\Http\Controllers\RssControllerTest
- */
 class RssController extends Controller
 {
     /**
@@ -54,8 +49,6 @@ class RssController extends Controller
         return view('rss.create', [
             'categories'  => Category::select(['id', 'name', 'position'])->orderBy('position')->get(),
             'types'       => Type::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'resolutions' => Resolution::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'genres'      => Genre::orderBy('name')->get(),
             'user'        => $request->user(),
         ]);
     }
@@ -74,10 +67,6 @@ class RssController extends Controller
             'categories.*'  => 'sometimes|exists:categories,id',
             'types'         => 'sometimes|array|max:999',
             'types.*'       => 'sometimes|exists:types,id',
-            'resolutions'   => 'sometimes|array|max:999',
-            'resolutions.*' => 'sometimes|exists:resolutions,id',
-            'genres'        => 'sometimes|array|max:999',
-            'genres.*'      => 'sometimes|exists:genres,id',
             'position'      => 'sometimes|integer|max:9999',
         ]);
 
@@ -86,21 +75,12 @@ class RssController extends Controller
             'search',
             'description',
             'uploader',
-            'imdb',
-            'tvdb',
-            'tmdb',
-            'mal',
             'categories',
             'types',
-            'resolutions',
-            'genres',
             'freeleech',
             'doubleupload',
             'featured',
-            'stream',
             'highspeed',
-            'sd',
-            'internal',
             'personalrelease',
             'bookmark',
             'alive',
@@ -158,7 +138,6 @@ class RssController extends Controller
                     'id',
                     'category_id',
                     'type_id',
-                    'resolution_id',
                     'size',
                     'created_at',
                     'seeders',
@@ -166,17 +145,11 @@ class RssController extends Controller
                     'times_completed',
                     'user_id',
                     'anon',
-                    'imdb',
-                    'tmdb',
-                    'tvdb',
-                    'mal',
-                    'internal',
                 ])
                 ->with([
                     'user:id,username,rsskey',
-                    'category:id,name,movie_meta,tv_meta',
+                    'category:id,name',
                     'type:id,name',
-                    'resolution:id,name'
                 ])
                 ->where((new TorrentSearchFiltersDTO(
                     user: $user,
@@ -185,20 +158,11 @@ class RssController extends Controller
                     uploader: $search->uploader ?? '',
                     categoryIds: array_map('intval', $search->categories ?? []),
                     typeIds: array_map('intval', $search->types ?? []),
-                    resolutionIds: array_map('intval', $search->resolutions ?? []),
-                    genreIds: array_map('intval', $search->genres ?? []),
-                    tmdbId: $search->tmdb === null ? null : (int) $search->tmdb,
-                    imdbId: $search->imdb === null ? null : ((int) (preg_match('/tt0*(?=(\d{7,}))/', $search->imdb, $matches) ? $matches[1] : $search->imdb)),
-                    tvdbId: $search->tvdb === null ? null : (int) $search->tvdb,
-                    malId: $search->mal === null ? null : (int) $search->mal,
                     free: $search->freeleech === null ? [] : [25, 50, 75, 100],
                     doubleup: (bool) ($search->doubleupload ?? false),
                     featured: (bool) ($search->featured ?? false),
-                    stream: (bool) ($search->stream ?? false),
-                    sd: (bool) ($search->sd ?? false),
                     highspeed: (bool) ($search->highspeed ?? false),
                     userBookmarked: (bool) ($search->bookmark ?? false),
-                    internal: (bool) ($search->internal ?? false),
                     personalRelease: (bool) ($search->personalrelease ?? false),
                     alive: (bool) ($search->alive ?? false),
                     dying: (bool) ($search->dying ?? false),
@@ -231,8 +195,6 @@ class RssController extends Controller
         return view('rss.edit', [
             'categories'  => Category::select(['id', 'name', 'position'])->orderBy('position')->get(),
             'types'       => Type::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'resolutions' => Resolution::select(['id', 'name', 'position'])->orderBy('position')->get(),
-            'genres'      => Genre::orderBy('name')->get(),
             'user'        => $user,
             'rss'         => $rss,
         ]);
@@ -256,10 +218,6 @@ class RssController extends Controller
             'categories.*'  => 'sometimes|exists:categories,id',
             'types'         => 'sometimes|array|max:999',
             'types.*'       => 'sometimes|exists:types,id',
-            'resolutions'   => 'sometimes|array|max:999',
-            'resolutions.*' => 'sometimes|exists:resolutions,id',
-            'genres'        => 'sometimes|array|max:999',
-            'genres.*'      => 'sometimes|exists:genres,id',
             'position'      => 'sometimes|integer|max:9999',
         ]);
 
@@ -267,21 +225,12 @@ class RssController extends Controller
             'search',
             'description',
             'uploader',
-            'imdb',
-            'tvdb',
-            'tmdb',
-            'mal',
             'categories',
             'types',
-            'resolutions',
-            'genres',
             'freeleech',
             'doubleupload',
             'featured',
-            'stream',
             'highspeed',
-            'sd',
-            'internal',
             'personalrelease',
             'bookmark',
             'alive',

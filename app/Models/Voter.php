@@ -32,8 +32,6 @@ use Illuminate\Database\Eloquent\Model;
 class Voter extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\VoterFactory> */
     use HasFactory;
 
     protected $guarded = [];
@@ -41,7 +39,7 @@ class Voter extends Model
     /**
      * Belongs To A Poll.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Poll, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Poll, self>
      */
     public function poll(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -51,7 +49,7 @@ class Voter extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

@@ -27,15 +27,12 @@ use Illuminate\Database\Eloquent\Model;
  * @property int                             $user_id
  * @property string                          $title
  * @property int                             $multiple_choice
- * @property \Illuminate\Support\Carbon|null $expires_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  */
 class Poll extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\PollFactory> */
     use HasFactory;
 
     /**
@@ -46,21 +43,9 @@ class Poll extends Model
     protected $guarded = [];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array{expires_at: 'datetime'}
-     */
-    protected function casts(): array
-    {
-        return [
-            'expires_at' => 'datetime',
-        ];
-    }
-
-    /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -73,7 +58,7 @@ class Poll extends Model
     /**
      * A Poll Has Many Options.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Option, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Option>
      */
     public function options(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -83,7 +68,7 @@ class Poll extends Model
     /**
      * A Poll Has Many Voters.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<User>
      */
     public function users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
@@ -93,7 +78,7 @@ class Poll extends Model
     /**
      * A Poll Has Many Votes.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Voter, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Voter>
      */
     public function votes(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

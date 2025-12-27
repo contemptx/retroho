@@ -25,7 +25,7 @@ if (!\function_exists('href_profile')) {
     {
         $appurl = appurl();
 
-        return \sprintf('%s/users/%s', $appurl, $user->username);
+        return sprintf('%s/users/%s', $appurl, $user->username);
     }
 }
 
@@ -34,7 +34,7 @@ if (!\function_exists('href_article')) {
     {
         $appurl = appurl();
 
-        return \sprintf('%s/articles/%s', $appurl, $article->id);
+        return sprintf('%s/articles/%s', $appurl, $article->id);
     }
 }
 
@@ -43,7 +43,7 @@ if (!\function_exists('href_torrent')) {
     {
         $appurl = appurl();
 
-        return \sprintf('%s/torrents/%s', $appurl, $torrent->id);
+        return sprintf('%s/torrents/%s', $appurl, $torrent->id);
     }
 }
 
@@ -52,7 +52,7 @@ if (!\function_exists('href_request')) {
     {
         $appurl = appurl();
 
-        return \sprintf('%s/requests/%s', $appurl, $torrentRequest->id);
+        return sprintf('%s/requests/%s', $appurl, $torrentRequest->id);
     }
 }
 
@@ -61,68 +61,7 @@ if (!\function_exists('href_poll')) {
     {
         $appurl = appurl();
 
-        return \sprintf('%s/polls/%s', $appurl, $poll->id);
-    }
-}
-
-if (!\function_exists('href_playlist')) {
-    function href_playlist(App\Models\Playlist $playlist): string
-    {
-        $appurl = appurl();
-
-        return \sprintf('%s/playlists/%s', $appurl, $playlist->id);
-    }
-}
-
-if (!\function_exists('href_collection')) {
-    function href_collection(App\Models\Collection $collection): string
-    {
-        $appurl = appurl();
-
-        return \sprintf('%s/mediahub/collections/%s', $appurl, $collection->id);
-    }
-}
-
-if (!\function_exists('tmdb_image')) {
-    function tmdb_image(string $type, ?string $original): string
-    {
-        $new = match ($type) {
-            'back_big'     => 'w1280',
-            'back_small'   => 'w780',
-            'poster_big'   => 'w500',
-            'poster_mid'   => 'w342',
-            'poster_small' => 'w92',
-            'cast_face'    => 'w138_and_h175_face',
-            'cast_mid'     => 'w185',
-            'cast_big'     => 'w300',
-            'still_mid'    => 'w400',
-            'logo_small'   => 'h60',
-            'logo_mid'     => 'w300',
-            default        => 'original',
-        };
-
-        return str_replace('/original/', '/'.$new.'/', (string) $original);
-    }
-}
-
-if (!\function_exists('rating_color')) {
-    function rating_color(null|int|float $number): ?string
-    {
-        $rating = round((float) $number);
-
-        if ($rating > 0 && $rating <= 4) {
-            return 'text-danger';
-        }
-
-        if ($rating >= 4 && $rating <= 7) {
-            return 'text-warning';
-        }
-
-        if ($rating >= 7 && $rating <= 10) {
-            return 'text-success';
-        }
-
-        return null;
+        return sprintf('%s/polls/%s', $appurl, $poll->id);
     }
 }
 

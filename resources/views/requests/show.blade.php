@@ -18,27 +18,8 @@
 @section('page', 'page__request--show')
 
 @section('main')
-    @if ($user->can_request ?? $user->group->can_request)
-        @switch(true)
-            @case($torrentRequest->category->movie_meta)
-                @include('torrent.partials.movie_meta', ['torrent' => $torrentRequest, 'category' => $torrentRequest->category, 'tmdb' => $torrentRequest->tmdb])
-
-                @break
-            @case($torrentRequest->category->tv_meta)
-                @include('torrent.partials.tv_meta', ['torrent' => $torrentRequest, 'category' => $torrentRequest->category, 'tmdb' => $torrentRequest->tmdb])
-
-                @break
-            @case($torrentRequest->category->game_meta)
-                @include('torrent.partials.game_meta', ['torrent' => $torrentRequest, 'category' => $torrentRequest->category, 'igdb' => $torrentRequest->igdb])
-
-                @break
-            @default
-                @include('torrent.partials.no_meta', ['torrent' => $torrentRequest, 'category' => $torrentRequest->category])
-
-                @break
-        @endswitch
+    @if ($user->can_request)
         <menu class="torrent__buttons form__group--short-horizontal">
-            @includeWhen($torrentRequest->torrent === null, 'requests.partials.vote')
 
             @switch(true)
                 {{-- Claimed --}}
@@ -87,11 +68,6 @@
                     {{ $torrentRequest->type->name }}
                 </span>
             </li>
-            <li class="request__resolution">
-                <span>
-                    {{ $torrentRequest->resolution->name ?? 'No Res' }}
-                </span>
-            </li>
             <li class="request__requester">
                 <x-user_tag :user="$torrentRequest->user" :anon="$torrentRequest->anon" />
             </li>
@@ -132,9 +108,7 @@
         </ul>
         <section class="panelV2">
             <h2 class="panel__heading">
-                {{ $torrentRequest->name }} {{ __('request.for') }}
-                <i class="{{ config('other.font-awesome') }} fa-coins text-gold"></i>
-                {{ $torrentRequest->bounty }} {{ __('bon.bon') }}
+                {{ $torrentRequest->name }}
             </h2>
             <div class="panel__body bbcode-rendered">
                 @joypixels($torrentRequest->getDescriptionHtml())
@@ -241,122 +215,6 @@
             </section>
         @endif
 
-        <section class="panelV2" x-data="toggle">
-            <header class="panel__header" style="cursor: pointer" x-on:click="toggle">
-                <h2 class="panel__heading">{{ __('request.voters') }}</h2>
-                @if ($torrentRequest->bounties->count() > 10)
-                    <div x-show="isToggledOff">
-                        <i
-                            class="{{ config('other.font-awesome') }} fa-plus-circle fa-pull-right"
-                        ></i>
-                        Show More
-                    </div>
-                    <div x-show="isToggledOn" x-cloak>
-                        <i
-                            class="{{ config('other.font-awesome') }} fa-minus-circle fa-pull-right"
-                        ></i>
-                        Show Less
-                    </div>
-                @endif
-            </header>
-            <div class="data-table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>{{ __('common.user') }}</th>
-                            <th>{{ __('bon.bon') }}</th>
-                            <th>{{ __('request.last-vote') }}</th>
-                            <th>{{ __('common.actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($torrentRequest->bounties as $bounty)
-                            <tr @if($loop->iteration > 10) x-show="isToggledOn" x-cloak @endif>
-                                <td>
-                                    <x-user_tag :user="$bounty->user" :anon="$bounty->anon" />
-                                </td>
-                                <td>{{ $bounty->seedbonus }}</td>
-                                <td>
-                                    <time
-                                        datetime="{{ $bounty->created_at }}"
-                                        title="{{ $bounty->created_at }}"
-                                    >
-                                        {{ $bounty->created_at->diffForHumans() }}
-                                    </time>
-                                </td>
-                                <td>
-                                    <menu class="data-table__actions">
-                                        @if ($bounty->user_id == auth()->id() || auth()->user()->group->is_modo)
-                                            <li class="data-table__action" x-data="dialog">
-                                                <button
-                                                    class="form__button form__button--text"
-                                                    x-bind="showDialog"
-                                                >
-                                                    {{ __('common.edit') }}
-                                                </button>
-                                                <dialog class="dialog" x-bind="dialogElement">
-                                                    <h4 class="dialog__heading">
-                                                        {{ __('common.edit') }}
-                                                        {{ __('request.vote') }}
-                                                    </h4>
-                                                    <form
-                                                        class="dialog__form"
-                                                        method="POST"
-                                                        action="{{ route('requests.bounties.update', ['torrentRequest' => $torrentRequest, 'torrentRequestBounty' => $bounty]) }}"
-                                                        x-bind="dialogForm"
-                                                    >
-                                                        @csrf
-                                                        @method('PATCH')
-                                                        <p class="form__group">
-                                                            <input
-                                                                type="hidden"
-                                                                name="anon"
-                                                                value="0"
-                                                            />
-                                                            <input
-                                                                id="anon_{{ $bounty->id }}"
-                                                                class="form__checkbox"
-                                                                name="anon"
-                                                                type="checkbox"
-                                                                value="1"
-                                                                @checked($bounty->anon)
-                                                            />
-                                                            <label
-                                                                class="form__label"
-                                                                for="anon_{{ $bounty->id }}"
-                                                            >
-                                                                {{ __('common.anonymous') }}?
-                                                            </label>
-                                                        </p>
-                                                        <p class="form__group">
-                                                            <button
-                                                                class="form__button form__button--filled"
-                                                            >
-                                                                {{ __('common.edit') }}
-                                                            </button>
-                                                            <button
-                                                                formmethod="dialog"
-                                                                formnovalidate
-                                                                class="form__button form__button--outlined"
-                                                            >
-                                                                {{ __('common.cancel') }}
-                                                            </button>
-                                                        </p>
-                                                    </form>
-                                                </dialog>
-                                            </li>
-                                        @endif
-                                    </menu>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    <tfoot>
-                        <tr></tr>
-                    </tfoot>
-                </table>
-            </div>
-        </section>
         <livewire:comments :model="$torrentRequest" />
     @else
         <section class="panelV2">

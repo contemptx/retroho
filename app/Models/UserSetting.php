@@ -24,8 +24,6 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property int                             $id
  * @property int                             $user_id
- * @property bool                            $censor
- * @property bool                            $chat_hidden
  * @property string                          $locale
  * @property int                             $style
  * @property int                             $torrent_layout
@@ -38,19 +36,16 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserSetting extends Model
 {
-    /** @use HasFactory<\Database\Factories\UserSettingFactory> */
     use HasFactory;
 
     /**
      * Get the attributes that should be cast.
      *
-     * @return array{censor: 'bool', chat_hidden: 'bool', torrent_filters: 'bool', show_poster: 'bool'}
+     * @return array{torrent_filters: 'bool', show_poster: 'bool'}
      */
     protected function casts(): array
     {
         return [
-            'censor'          => 'bool',
-            'chat_hidden'     => 'bool',
             'torrent_filters' => 'bool',
             'show_poster'     => 'bool',
         ];
@@ -59,7 +54,7 @@ class UserSetting extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

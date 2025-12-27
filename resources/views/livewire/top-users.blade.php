@@ -81,14 +81,6 @@
         >
             Thankers
         </li>
-        <li
-            class="panel__tab"
-            role="tab"
-            x-bind:class="tab === 'personals' && 'panel__tab--active'"
-            x-on:click="tab = 'personals'"
-        >
-            Personal Releases
-        </li>
     </menu>
     <div class="panel__body" wire:loading.block>Loading...</div>
     <div class="panel__body" wire:loading.remove>

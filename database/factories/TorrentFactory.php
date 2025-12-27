@@ -72,6 +72,7 @@ class TorrentFactory extends Factory
             'sticky'          => $this->faker->boolean(),
             'sd'              => $this->faker->boolean(),
             'internal'        => $this->faker->boolean(),
+            'release_year'    => $this->faker->date('Y'),
         ];
     }
 }

@@ -28,8 +28,19 @@ class TorrentDownloadController extends Controller
     /**
      * Download Check.
      */
-    public function show(Request $request, int $id): \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+    public function show(Request $request, int $id): \Illuminate\Contracts\View\Factory|\Illuminate\View\View|\Illuminate\Http\RedirectResponse
     {
+        $user = $request->user();
+        $torrent = Torrent::withoutGlobalScope(ApprovedScope::class)->findOrFail($id);
+
+        if (!$torrent->attachedUsers->contains($user) && !($torrent->user_id === $user->id) && !($user->group->is_owner || $user->group->is_internal)) {
+            return redirect()->back()->withErrors('You do NOT currently have access to this torrent.
+
+To purchase access please visit ArcadeSystems.co.uk
+
+If you have recently registered please make sure to provide us with your username so we can update your permissions on your account.');
+        }
+
         return view('torrent.download_check', [
             'torrent' => Torrent::withoutGlobalScope(ApprovedScope::class)->findOrFail($id),
             'user'    => $request->user(),
@@ -47,6 +58,15 @@ class TorrentDownloadController extends Controller
             $user = User::where('rsskey', '=', $rsskey)->sole();
         }
         $torrent = Torrent::withoutGlobalScope(ApprovedScope::class)->findOrFail($id);
+
+        if (!$torrent->attachedUsers->contains($user) && !($torrent->user_id === $user->id) && !($user->group->is_owner || $user->group->is_internal)) {
+            return redirect()->back()->withErrors("You do NOT currently have access to this torrent.
+
+To purchase access please visit ArcadeSystems.co.uk
+
+If you have recently registered please make sure to provide us with your username so we can update your permissions on your account.");
+        }
+
         $hasHistory = $user->history()->where([['torrent_id', '=', $torrent->id], ['seeder', '=', 1]])->exists();
 
         // User's ratio is too low

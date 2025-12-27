@@ -33,7 +33,6 @@
                         <th>Min. Torrent Size</th>
                         <th>{{ __('common.category') }}</th>
                         <th>{{ __('common.type') }}</th>
-                        <th>{{ __('common.resolution') }}</th>
                         <th>Freeleech Percentage</th>
                         <th>{{ __('common.created_at') }}</th>
                         <th>{{ __('torrent.updated_at') }}</th>
@@ -50,7 +49,6 @@
                             </td>
                             <td>{{ $automaticTorrentFreeleech->category?->name ?? 'Any' }}</td>
                             <td>{{ $automaticTorrentFreeleech->type?->name ?? 'Any' }}</td>
-                            <td>{{ $automaticTorrentFreeleech->resolution?->name ?? 'Any' }}</td>
                             <td>{{ $automaticTorrentFreeleech->freeleech_percentage }}</td>
                             <td>
                                 <time

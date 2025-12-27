@@ -18,14 +18,6 @@ class UpdateGeneralSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'censor' => [
-                'required',
-                'boolean',
-            ],
-            'chat_hidden' => [
-                'required',
-                'boolean',
-            ],
             'locale' => [
                 'required',
                 Rule::in(array_keys(Language::allowed())),
@@ -44,7 +36,7 @@ class UpdateGeneralSettingRequest extends FormRequest
             ],
             'torrent_layout' => [
                 'required',
-                Rule::in([0, 1, 2, 3]),
+                Rule::in([0]),
             ],
             'torrent_sort_field' => [
                 'required',

@@ -97,7 +97,6 @@ class HomeController extends Controller
                 fn () => Post::query()
                     ->with('user', 'user.group', 'topic:id,name')
                     ->withCount('likes', 'dislikes', 'authorPosts', 'authorTopics')
-                    ->withSum('tips', 'bon')
                     ->withExists([
                         'likes'    => fn ($query) => $query->where('user_id', '=', auth()->id()),
                         'dislikes' => fn ($query) => $query->where('user_id', '=', auth()->id()),
@@ -111,16 +110,11 @@ class HomeController extends Controller
                 'latest_featured',
                 $expiresAt,
                 fn () => FeaturedTorrent::with([
-                    'torrent' => ['resolution', 'type', 'category'],
+                    'torrent' => ['type', 'category'],
                     'user.group',
                 ])->get(),
             ),
-            'poll' => cache()->remember('latest_poll', $expiresAt, function () {
-                return Poll::where(function ($query): void {
-                    $query->where('expires_at', '>', now())
-                        ->orWhereNull('expires_at');
-                })->latest()->first();
-            }),
+            'poll'             => cache()->remember('latest_poll', $expiresAt, fn () => Poll::latest()->first()),
             'freeleech_tokens' => FreeleechToken::where('user_id', $user->id)->get(),
             'bookmarks'        => Bookmark::where('user_id', $user->id)->get(),
         ]);

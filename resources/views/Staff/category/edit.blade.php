@@ -81,34 +81,6 @@
                     <input id="file" class="form__file" type="file" name="image" />
                 </p>
                 <p class="form__group">
-                    <select name="meta" id="meta" class="form__select" required>
-                        <option
-                            class="form__option"
-                            value="movie"
-                            @selected($category->movie_meta)
-                        >
-                            Movie metadata
-                        </option>
-                        <option class="form__option" value="tv" @selected($category->tv_meta)>
-                            TV metadata
-                        </option>
-                        <option class="form__option" value="game" @selected($category->game_meta)>
-                            Game metadata
-                        </option>
-                        <option
-                            class="form__option"
-                            value="music"
-                            @selected($category->music_meta)
-                        >
-                            Music metadata
-                        </option>
-                        <option class="form__option" value="no" @selected($category->no_meta)>
-                            No metadata
-                        </option>
-                    </select>
-                    <label class="form__label form__label--floating" for="meta">Meta</label>
-                </p>
-                <p class="form__group">
                     <button class="form__button form__button--filled">
                         {{ __('common.submit') }}
                     </button>

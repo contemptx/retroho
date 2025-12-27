@@ -32,8 +32,6 @@ use Illuminate\Database\Eloquent\Model;
 class Thank extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\ThankFactory> */
     use HasFactory;
 
     protected $guarded = [];
@@ -41,7 +39,7 @@ class Thank extends Model
     /**
      * Belongs To A Torrent.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, self>
      */
     public function torrent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -51,7 +49,7 @@ class Thank extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

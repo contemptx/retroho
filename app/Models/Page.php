@@ -34,8 +34,6 @@ use Illuminate\Database\Eloquent\Model;
 class Page extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\PageFactory> */
     use HasFactory;
 
     /**

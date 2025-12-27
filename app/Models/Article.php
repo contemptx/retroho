@@ -37,8 +37,6 @@ use voku\helper\AntiXSS;
 class Article extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\ArticleFactory> */
     use HasFactory;
 
     /**
@@ -51,7 +49,7 @@ class Article extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -62,7 +60,7 @@ class Article extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\MorphMany<Comment, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\MorphMany<Comment>
      */
     public function comments(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {

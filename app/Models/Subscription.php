@@ -34,14 +34,12 @@ use Illuminate\Database\Eloquent\Model;
 class Subscription extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\SubscriptionFactory> */
     use HasFactory;
 
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -54,7 +52,7 @@ class Subscription extends Model
     /**
      * Belongs To A Topic.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Topic, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Topic, self>
      */
     public function topic(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -64,7 +62,7 @@ class Subscription extends Model
     /**
      * Belongs To A Forum.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Forum, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Forum, self>
      */
     public function forum(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

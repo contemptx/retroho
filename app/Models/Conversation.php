@@ -21,7 +21,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Conversation extends Model
 {
-    /** @use HasFactory<\Database\Factories\ConversationFactory> */
     use HasFactory;
 
     /**
@@ -34,7 +33,7 @@ class Conversation extends Model
     /**
      * Has many private messages.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<PrivateMessage, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<PrivateMessage>
      */
     public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -44,7 +43,7 @@ class Conversation extends Model
     /**
      * Has many users.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<User>
      */
     public function users(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
@@ -54,7 +53,7 @@ class Conversation extends Model
     /**
      * Has many participants.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Participant, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Participant>
      */
     public function participants(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

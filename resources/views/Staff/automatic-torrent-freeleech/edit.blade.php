@@ -114,22 +114,6 @@
                     </label>
                 </p>
                 <p class="form__group">
-                    <select id="resolution_id" name="resolution_id" class="form__select">
-                        <option hidden disabled selected value="">Any</option>
-                        @foreach ($resolutions as $resolution)
-                            <option
-                                value="{{ $resolution->id }}"
-                                @selected($automaticTorrentFreeleech->resolution_id === $resolution->id)
-                            >
-                                {{ $resolution->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <label class="form__label form__label--floating" for="resolution_id">
-                        {{ __('torrent.resolution') }}
-                    </label>
-                </p>
-                <p class="form__group">
                     <input
                         type="text"
                         name="freeleech_percentage"

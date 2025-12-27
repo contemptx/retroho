@@ -16,7 +16,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Events\TicketWentStale;
 use App\Helpers\Bbcode;
 use App\Helpers\Linkify;
 use App\Traits\Auditable;
@@ -41,8 +40,6 @@ use voku\helper\AntiXSS;
 class Comment extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\CommentFactory> */
     use HasFactory;
 
     /**
@@ -67,7 +64,7 @@ class Comment extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -78,7 +75,7 @@ class Comment extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\MorphTo<Model, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\MorphTo<Model, Comment>
      */
     public function commentable(): \Illuminate\Database\Eloquent\Relations\MorphTo
     {
@@ -86,7 +83,7 @@ class Comment extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<self, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<self>
      */
     public function children(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
@@ -127,19 +124,5 @@ class Comment extends Model
         $bbcode = new Bbcode();
 
         return (new Linkify())->linky($bbcode->parse($this->content));
-    }
-
-    /**
-     * Nootify Staff There Is Stale Tickets.
-     */
-    public static function checkForStale(Ticket $ticket): void
-    {
-        if (empty($ticket->reminded_at) || strtotime((string) $ticket->reminded_at) < strtotime('+ 3 days')) {
-            $last_comment = $ticket->comments()->latest('id')->first();
-
-            if ($last_comment !== null && property_exists($last_comment, 'id') && $last_comment->id !== null && !$last_comment->user->group->is_modo && strtotime((string) $last_comment->created_at) < strtotime('- 3 days')) {
-                event(new TicketWentStale($ticket));
-            }
-        }
     }
 }

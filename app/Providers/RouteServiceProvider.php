@@ -43,10 +43,6 @@ class RouteServiceProvider extends ServiceProvider
         $this->removeIndexPhpFromUrl();
 
         $this->routes(function (): void {
-            Route::prefix('api')
-                ->middleware(['chat'])
-                ->group(base_path('routes/vue.php'));
-
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
 
@@ -73,7 +69,6 @@ class RouteServiceProvider extends ServiceProvider
             : Limit::perMinute(8)->by('web'.$request->ip()));
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(30)->by('api'.$request->ip()));
         RateLimiter::for('announce', fn (Request $request) => Limit::perMinute(500)->by('announce'.$request->ip()));
-        RateLimiter::for('chat', fn (Request $request) => Limit::perMinute(60)->by('chat'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('rss', fn (Request $request) => Limit::perMinute(30)->by('rss'.$request->ip()));
     }
 

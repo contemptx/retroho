@@ -1,10 +1,8 @@
 <nav class="top-nav" x-data="{ expanded: false }" x-bind:class="expanded && 'mobile'">
     <div class="top-nav__left">
         <a class="top-nav__branding" href="{{ route('home.index') }}">
-            <i class="fal fa-tv-retro"></i>
-            <span class="top-nav__site-logo">{{ \config('other.title') }}</span>
+            <img src="{{ url('favicon.ico') }}" style="width: 85px;" alt="{{ \config('other.title') }}" />
         </a>
-        <livewire:quick-search-dropdown />
     </div>
     <ul class="top-nav__main-menus" x-bind:class="expanded && 'mobile'">
         <li class="top-nav--left__list-item top-nav__dropdown">
@@ -31,22 +29,30 @@
                         {{ __('common.upload') }}
                     </a>
                 </li>
+            </ul>
+        </li>
+        <li class="top-nav--left__list-item top-nav__dropdown">
+            <a class="top-nav__dropdown--nontouch" href="{{ route('nzbs.index') }}">
+                <div class="top-nav--left__container">
+                     NZBs
+                </div>
+            </a>
+            <a class="top-nav__dropdown--touch" tabindex="0">
+                <div class="top-nav--left__container">
+                    NZBs
+                </div>
+            </a>
+            <ul>
                 <li>
-                    <a href="{{ route('requests.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-hands-helping"></i>
-                        {{ __('request.requests') }}
+                    <a href="{{ route('nzbs.index') }}">
+                        <i class="{{ config('other.font-awesome') }} fa-download"></i>
+                        NZBs
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('rss.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-rss"></i>
-                        {{ __('rss.rss') }}
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('mediahub.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-database"></i>
-                        MediaHub
+                    <a href="{{ route('nzbs.create') }}">
+                        <i class="{{ config('other.font-awesome') }} fa-upload"></i>
+                        {{ __('common.upload') }}
                     </a>
                 </li>
             </ul>
@@ -70,24 +76,6 @@
                     </a>
                 </li>
                 <li>
-                    <a href="{{ route('playlists.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-list-ol"></i>
-                        {{ __('playlist.playlists') }}
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('polls.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-chart-pie"></i>
-                        {{ __('poll.polls') }}
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('stats') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-chart-bar"></i>
-                        {{ __('common.extra-stats') }}
-                    </a>
-                </li>
-                <li>
                     <a href="{{ route('articles.index') }}">
                         <i class="{{ config('other.font-awesome') }} fa-newspaper"></i>
                         {{ __('common.news') }}
@@ -107,116 +95,29 @@
             <a tabindex="0">
                 <div class="top-nav--left__container">
                     {{ __('common.support') }}
-                    <!-- Notifications for Mods -->
-                    @if (auth()->user()->group->is_modo)
-                        @php
-                            $tickets = DB::table('tickets')
-                                ->whereNull('closed_at')
-                                ->whereNull('staff_id')
-                                ->orwhere(function ($query) {
-                                    $query
-                                        ->where('staff_id', '=', auth()->id())
-                                        ->Where('staff_read', '=', '0');
-                                })
-                                ->exists();
-                        @endphp
-
-                        @if ($tickets)
-                            <x-animation.notification />
-                        @endif
-
-                        <!-- Notification for Users -->
-                    @else
-                        @php
-                            $ticket_unread = DB::table('tickets')
-                                ->where('user_id', '=', auth()->id())
-                                ->where('user_read', '=', '0')
-                                ->exists();
-                        @endphp
-
-                        @if ($ticket_unread)
-                            <x-animation.notification />
-                        @endif
-                    @endif
                 </div>
             </a>
             <ul>
                 <li>
-                    <a href="{{ config('other.rules_url') }}">
+                    <a href="https://arcadesystems.co.uk/help" target"_blank">
                         <i class="{{ config('other.font-awesome') }} fa-info"></i>
-                        {{ __('common.rules') }}
+                        Help Guides
                     </a>
                 </li>
                 <li>
-                    <a href="{{ config('other.faq_url') }}">
+                    <a href="https://arcadesystems.co.uk/contact-us">
                         <i class="{{ config('other.font-awesome') }} fa-question"></i>
-                        {{ __('common.faq') }}
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('wikis.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-list-alt"></i>
-                        Wiki
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('tickets.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-life-ring"></i>
-                        {{ __('ticket.helpdesk') }}
-                        <!-- Notifications for Mods -->
-                        @if (auth()->user()->group->is_modo)
-                            @if ($tickets > 0)
-                                <x-animation.notification />
-                            @endif
-
-                            <!-- Notification for Users -->
-                        @else
-                            @if ($ticket_unread > 0)
-                                <x-animation.notification />
-                            @endif
-                        @endif
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('staff') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-user-secret"></i>
-                        {{ __('common.staff') }}
+                        Contact Us
                     </a>
                 </li>
             </ul>
         </li>
-        <li class="top-nav__dropdown">
-            <a tabindex="0">
+        <li class="top-nav--left__list-item top-nav__dropdown">
+            <a class="top-nav__dropdown--nontouch" href="https://arcadesystems.co.uk">
                 <div class="top-nav--left__container">
-                    {{ __('common.other') }}
+                    Arcade Systems
                 </div>
             </a>
-            <ul>
-                <li>
-                    <a href="{{ route('subtitles.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-closed-captioning"></i>
-                        {{ __('common.subtitles') }}
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('top10.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-trophy-alt"></i>
-                        {{ __('common.top-10') }}
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('missing.index') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-ballot-check"></i>
-                        {{ __('common.missing') }}
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('internal') }}">
-                        <i class="{{ config('other.font-awesome') }} fa-star-shooting"></i>
-                        {{ __('common.internal') }}
-                    </a>
-                </li>
-            </ul>
         </li>
     </ul>
     <div class="top-nav__right" x-bind:class="expanded && 'mobile'">
@@ -290,22 +191,10 @@
                     {{ auth()->user()->formatted_buffer }}
                 </a>
             </li>
-            <li class="ratio-bar__points" title="{{ __('user.my-bonus-points') }}">
-                <a href="{{ route('users.earnings.index', ['user' => auth()->user()]) }}">
-                    <i class="{{ config('other.font-awesome') }} fa-coins"></i>
-                    {{ auth()->user()->formatted_seedbonus }}
-                </a>
-            </li>
             <li class="ratio-bar__ratio" title="{{ __('common.ratio') }}">
                 <a href="{{ route('users.history.index', ['user' => auth()->user()]) }}">
                     <i class="{{ config('other.font-awesome') }} fa-sync-alt"></i>
                     {{ auth()->user()->formatted_ratio }}
-                </a>
-            </li>
-            <li class="ratio-bar__tokens" title="{{ __('user.my-fl-tokens') }}">
-                <a href="{{ route('users.show', ['user' => auth()->user()]) }}">
-                    <i class="{{ config('other.font-awesome') }} fa-star"></i>
-                    {{ auth()->user()->fl_tokens }}
                 </a>
             </li>
         </ul>
@@ -385,18 +274,6 @@
                     @endif
                 </a>
             </li>
-            <li>
-                <a
-                    class="top-nav--right__icon-link"
-                    href="{{ route('users.notifications.index', ['user' => auth()->user()]) }}"
-                    title="{{ __('user.notifications') }}"
-                >
-                    <i class="{{ config('other.font-awesome') }} fa-bell"></i>
-                    @if (auth()->user()->unreadNotifications()->exists())
-                        <x-animation.notification />
-                    @endif
-                </a>
-            </li>
             <li class="top-nav__dropdown">
                 <a
                     class="top-nav__dropdown--nontouch"
@@ -452,56 +329,6 @@
                         >
                             <i class="{{ config('other.font-awesome') }} fa-cogs"></i>
                             {{ __('user.my-settings') }}
-                        </a>
-                    </li>
-                    <li>
-                        <a
-                            href="{{ route('users.privacy_settings.edit', ['user' => auth()->user()]) }}"
-                        >
-                            <i class="{{ config('other.font-awesome') }} fa-eye"></i>
-                            {{ __('user.my-privacy') }}
-                        </a>
-                    </li>
-                    <li>
-                        <a
-                            href="{{ route('users.achievements.index', ['user' => auth()->user()]) }}"
-                        >
-                            <i class="{{ config('other.font-awesome') }} fa-trophy-alt"></i>
-                            {{ __('user.my-achievements') }}
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('users.torrents.index', ['user' => auth()->user()]) }}">
-                            <i class="{{ config('other.font-awesome') }} fa-upload"></i>
-                            {{ __('user.my-uploads') }}
-                        </a>
-                    </li>
-                    <li>
-                        <a
-                            href="{{ route('users.history.index', ['user' => auth()->user(), 'downloaded' => 'include']) }}"
-                        >
-                            <i class="{{ config('other.font-awesome') }} fa-download"></i>
-                            {{ __('user.my-downloads') }}
-                        </a>
-                    </li>
-                    <li>
-                        <a
-                            href="{{ route('requests.index', ['requestor' => auth()->user()->username]) }}"
-                        >
-                            <i class="{{ config('other.font-awesome') }} fa-question"></i>
-                            {{ __('user.my-requested') }}
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('torrents.index', ['bookmarked' => 1]) }}">
-                            <i class="{{ config('other.font-awesome') }} fa-bookmark"></i>
-                            {{ __('user.my-bookmarks') }}
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('users.wishes.index', ['user' => auth()->user()]) }}">
-                            <i class="{{ config('other.font-awesome') }} fa-clipboard-list"></i>
-                            {{ __('user.my-wishlist') }}
                         </a>
                     </li>
                     <li>

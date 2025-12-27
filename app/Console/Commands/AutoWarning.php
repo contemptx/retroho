@@ -77,22 +77,18 @@ class AutoWarning extends Command
                         $warning->user_id = $hr->user->id;
                         $warning->warned_by = User::SYSTEM_USER_ID;
                         $warning->torrent = $hr->torrent->id;
-                        $warning->reason = \sprintf('Hit and Run Warning For Torrent %s', $hr->torrent->name);
+                        $warning->reason = sprintf('Hit and Run Warning For Torrent %s', $hr->torrent->name);
                         $warning->expires_on = $carbon->copy()->addDays(config('hitrun.expire'));
                         $warning->active = true;
                         $warning->save();
 
-                        History::query()
-                            ->where('torrent_id', '=', $hr->torrent_id)
-                            ->where('user_id', '=', $hr->user_id)
-                            ->update([
-                                'hitrun'     => true,
-                                'updated_at' => DB::raw('updated_at'),
-                            ]);
-
                         // Add +1 To Users Warnings Count In Users Table
+                        $hr->hitrun = true;
                         $hr->user->hitandruns++;
                         $hr->user->save();
+
+                        $hr->timestamps = false;
+                        $hr->save();
 
                         // Add user to usersWithWarnings array
                         $usersWithWarnings[$hr->user->id] = $hr->user;

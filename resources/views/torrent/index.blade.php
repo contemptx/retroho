@@ -21,11 +21,6 @@
         </a>
     </li>
     <li class="nav-tabV2">
-        <a class="nav-tab__link" href="{{ route('top10.index') }}">
-            {{ __('common.top-10') }}
-        </a>
-    </li>
-    <li class="nav-tabV2">
         <a class="nav-tab__link" href="{{ route('rss.index') }}">
             {{ __('rss.rss') }}
         </a>

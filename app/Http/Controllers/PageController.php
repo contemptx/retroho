@@ -18,7 +18,6 @@ namespace App\Http\Controllers;
 
 use App\Models\BlacklistClient;
 use App\Models\Group;
-use App\Models\Internal;
 use App\Models\Page;
 
 /**
@@ -57,21 +56,6 @@ class PageController extends Controller
                 ->where('is_modo', '=', 1)
                 ->orWhere('is_admin', '=', 1)
                 ->orderByDesc('position')
-                ->get(),
-        ]);
-    }
-
-    /**
-     * Show Internals Page.
-     */
-    public function internal(): \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-    {
-        return view('page.internal', [
-            'internals' => Internal::query()
-                ->with([
-                    'users' => fn ($query) => $query->with('group')->orderByPivot('position', 'asc'),
-                ])
-                ->orderBy('name')
                 ->get(),
         ]);
     }

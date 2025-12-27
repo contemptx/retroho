@@ -33,11 +33,6 @@
                         <th>{{ __('common.name') }}</th>
                         <th>{{ __('common.icon') }}</th>
                         <th>{{ __('common.image') }}</th>
-                        <th>Movie Meta</th>
-                        <th>TV Meta</th>
-                        <th>Game Meta</th>
-                        <th>Music Meta</th>
-                        <th>No Meta</th>
                         <th>{{ __('common.action') }}</th>
                     </tr>
                 </thead>
@@ -60,61 +55,6 @@
                                     <img alt="" src="{{ url('files/img/' . $category->image) }}" />
                                 @else
                                     <span>N/A</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($category->movie_meta)
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-check text-green"
-                                    ></i>
-                                @else
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-times text-red"
-                                    ></i>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($category->tv_meta)
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-check text-green"
-                                    ></i>
-                                @else
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-times text-red"
-                                    ></i>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($category->game_meta)
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-check text-green"
-                                    ></i>
-                                @else
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-times text-red"
-                                    ></i>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($category->music_meta)
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-check text-green"
-                                    ></i>
-                                @else
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-times text-red"
-                                    ></i>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($category->no_meta)
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-check text-green"
-                                    ></i>
-                                @else
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-times text-red"
-                                    ></i>
                                 @endif
                             </td>
                             <td>

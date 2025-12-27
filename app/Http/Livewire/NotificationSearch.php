@@ -31,9 +31,6 @@ class NotificationSearch extends Component
     #TODO: Update URL attributes once Livewire 3 fixes upstream bug. See: https://github.com/livewire/livewire/discussions/7746
 
     #[Url(history: true)]
-    public bool $bon_gifts = false;
-
-    #[Url(history: true)]
     public bool $comment = false;
 
     #[Url(history: true)]
@@ -47,12 +44,6 @@ class NotificationSearch extends Component
 
     #[Url(history: true)]
     public bool $post_tags = false;
-
-    #[Url(history: true)]
-    public bool $post_tips = false;
-
-    #[Url(history: true)]
-    public bool $request_bounties = false;
 
     #[Url(history: true)]
     public bool $request_claims = false;
@@ -74,9 +65,6 @@ class NotificationSearch extends Component
 
     #[Url(history: true)]
     public bool $thanks = false;
-
-    #[Url(history: true)]
-    public bool $upload_tips = false;
 
     #[Url(history: true)]
     public bool $topics = false;
@@ -106,12 +94,9 @@ class NotificationSearch extends Component
             ->select('*')
             ->selectRaw("CASE WHEN read_at IS NULL THEN 'FALSE' ELSE 'TRUE' END as is_read")
             ->where(function ($query): void {
-                $query->when($this->bon_gifts, function ($query): void {
-                    $query->orWhere('type', '=', \App\Notifications\NewBon::class);
+                $query->when($this->comment, function ($query): void {
+                    $query->orWhere('type', '=', \App\Notifications\NewComment::class);
                 })
-                    ->when($this->comment, function ($query): void {
-                        $query->orWhere('type', '=', \App\Notifications\NewComment::class);
-                    })
                     ->when($this->comment_tags, function ($query): void {
                         $query->orWhere('type', '=', \App\Notifications\NewCommentTag::class);
                     })
@@ -123,12 +108,6 @@ class NotificationSearch extends Component
                     })
                     ->when($this->post_tags, function ($query): void {
                         $query->orWhere('type', '=', \App\Notifications\NewPostTag::class);
-                    })
-                    ->when($this->post_tips, function ($query): void {
-                        $query->orWhere('type', '=', \App\Notifications\NewPostTip::class);
-                    })
-                    ->when($this->request_bounties, function ($query): void {
-                        $query->orWhere('type', '=', \App\Notifications\NewRequestBounty::class);
                     })
                     ->when($this->request_claims, function ($query): void {
                         $query->orWhere('type', '=', \App\Notifications\NewRequestClaim::class);
@@ -150,9 +129,6 @@ class NotificationSearch extends Component
                     })
                     ->when($this->thanks, function ($query): void {
                         $query->orWhere('type', '=', \App\Notifications\NewThank::class);
-                    })
-                    ->when($this->upload_tips, function ($query): void {
-                        $query->orWhere('type', '=', \App\Notifications\NewUploadTip::class);
                     })
                     ->when($this->topics, function ($query): void {
                         $query->orWhere('type', '=', \App\Notifications\NewTopic::class);

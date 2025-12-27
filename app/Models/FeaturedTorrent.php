@@ -32,14 +32,12 @@ use Illuminate\Database\Eloquent\Model;
 class FeaturedTorrent extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\FeaturedTorrentFactory> */
     use HasFactory;
 
     /**
      * Belongs To A Torrent.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Torrent, self>
      */
     public function torrent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -49,7 +47,7 @@ class FeaturedTorrent extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

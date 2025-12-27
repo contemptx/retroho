@@ -14,7 +14,7 @@
                 flex-wrap: wrap;
             "
         >
-            @if (auth()->user()->group->is_editor || auth()->user()->group->is_modo || (auth()->id() === $torrent->user_id && $canEdit))
+            @if (auth()->user()->group->is_modo || (auth()->id() === $torrent->user_id && $canEdit))
                 <li>
                     <menu
                         style="
@@ -248,33 +248,6 @@
                                 </form>
                             </div>
                         </dialog>
-                    </li>
-                    <li>
-                        @if ($torrent->refundable == 0)
-                            <form
-                                action="{{ route('refundable', ['id' => $torrent->id]) }}"
-                                method="POST"
-                                style="display: inline"
-                            >
-                                @csrf
-                                <button type="submit" class="form__button form__button--outlined">
-                                    <i class="{{ config('other.font-awesome') }} fa-repeat"></i>
-                                    {{ __('torrent.refundable') }}
-                                </button>
-                            </form>
-                        @else
-                            <form
-                                action="{{ route('refundable', ['id' => $torrent->id]) }}"
-                                method="POST"
-                                style="display: inline"
-                            >
-                                @csrf
-                                <button type="submit" class="form__button form__button--outlined">
-                                    <i class="{{ config('other.font-awesome') }} fa-repeat"></i>
-                                    {{ __('torrent.revoke') }} {{ __('torrent.refundable') }}
-                                </button>
-                            </form>
-                        @endif
                     </li>
                     <li>
                         @if ($torrent->sticky == 0)
@@ -535,6 +508,17 @@
                             </dialog>
                         </li>
                     @endif
+
+                        <li>
+                            <a
+                                class="form__button form__button--outlined"
+                                href="{{ route('torrents.manageUsers', ['torrent' => $torrent->id]) }}"
+                                role="button"
+                            >
+                                <i class="{{ config('other.font-awesome') }} fa-users"></i>
+                                {{ __('Manage Users') }}
+                            </a>
+                        </li>
 
                     <li>
                         @switch($torrent->status)

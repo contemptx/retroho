@@ -23,7 +23,7 @@ return [
     |
     */
 
-    'title' => 'UNIT3D',
+    'title' => 'retroho',
 
     /*
     |--------------------------------------------------------------------------
@@ -34,7 +34,7 @@ return [
     |
     */
 
-    'subTitle' => 'Built On Laravel',
+    'subTitle' => 'RetroClassic Arcade Games',
 
     /*
     |--------------------------------------------------------------------------
@@ -56,7 +56,7 @@ return [
     |
     */
 
-    'meta_description' => 'Built On Laravel',
+    'meta_description' => 'RetroClassic Arcade Games',
 
     /*
     |--------------------------------------------------------------------------
@@ -66,7 +66,7 @@ return [
     | Date Site Was Born
     |
     */
-    'birthdate' => 'December 30th 2017',
+    'birthdate' => 'September 18th 2024',
 
     /*
     |--------------------------------------------------------------------------
@@ -109,7 +109,7 @@ return [
     |
     */
 
-    'ratio' => 0.4,
+    'ratio' => 0,
 
     /*
     |--------------------------------------------------------------------------
@@ -122,7 +122,7 @@ return [
     | Restricted mode for invites. If set to true, invites will be restricted
     | Exempt these groups from the invite restrictions
     */
-    'invite-only'   => true,
+    'invite-only'   => false,
     'invite_expire' => 14,
 
     'invites_restriced' => false,

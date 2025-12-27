@@ -36,6 +36,10 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'customer_id' => [
+                'nullable',
+                'integer',
+            ],
             'username' => [
                 'required',
             ],

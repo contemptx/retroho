@@ -22,7 +22,6 @@ use App\Notifications\UserPreWarning;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Exception;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class AutoPreWarning extends Command
@@ -74,13 +73,9 @@ class AutoPreWarning extends Command
                         ->first();
 
                     if ($exsist === null) {
-                        History::query()
-                            ->where('torrent_id', '=', $pre->torrent_id)
-                            ->where('user_id', '=', $pre->user_id)
-                            ->update([
-                                'prewarned_at' => now(),
-                                'updated_at'   => DB::raw('updated_at'),
-                            ]);
+                        $pre->prewarned_at = now();
+                        $pre->timestamps = false;
+                        $pre->save();
 
                         // Add user to usersWithWarnings array
                         $usersWithPreWarnings[$pre->user->id] = $pre->user;

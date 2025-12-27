@@ -20,7 +20,6 @@ use App\Models\Peer;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class AutoStatsClients extends Command
@@ -46,17 +45,17 @@ class AutoStatsClients extends Command
      */
     final public function handle(): void
     {
-        $clients = Peer::selectRaw('agent, COUNT(*) as user_count, SUM(peer_count) as peer_count')
+        $clients = Peer::selectRaw('agent, count(*) as count')
             ->fromSub(
                 Peer::query()
-                    ->select(['agent', 'user_id', DB::raw('COUNT(*) as peer_count')])
+                    ->select(['agent', 'user_id'])
                     ->groupBy('agent', 'user_id')
                     ->where('active', '=', true),
                 'distinct_agent_user'
             )
             ->groupBy('agent')
             ->orderBy('agent')
-            ->get()
+            ->pluck('count', 'agent')
             ->toArray();
 
         if (!empty($clients)) {

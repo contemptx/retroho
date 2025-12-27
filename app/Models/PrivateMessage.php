@@ -34,7 +34,6 @@ use voku\helper\AntiXSS;
  */
 class PrivateMessage extends Model
 {
-    /** @use HasFactory<\Database\Factories\PrivateMessageFactory> */
     use HasFactory;
 
     /**
@@ -47,7 +46,7 @@ class PrivateMessage extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function sender(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -57,7 +56,7 @@ class PrivateMessage extends Model
     /**
      * Belongs To A Conversation.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Conversation, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Conversation, self>
      */
     public function conversation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

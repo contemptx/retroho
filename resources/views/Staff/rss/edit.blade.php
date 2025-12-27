@@ -101,69 +101,6 @@
                     </label>
                 </p>
                 <div class="form__group--horizontal">
-                    <p class="form__group">
-                        <input
-                            id="autotmdb"
-                            class="form__text"
-                            inputmode="numeric"
-                            name="tmdb"
-                            pattern="[0-9]*"
-                            placeholder=" "
-                            type="text"
-                            value="{{ $rss->object_torrent->tmdb }}"
-                        />
-                        <label class="form__label form__label--floating" for="autotmdb">
-                            TMDB ID
-                        </label>
-                    </p>
-                    <p class="form__group">
-                        <input
-                            id="autoimdb"
-                            class="form__text"
-                            inputmode="numeric"
-                            name="imdb"
-                            pattern="[0-9]*"
-                            placeholder=" "
-                            type="text"
-                            value="{{ $rss->object_torrent->imdb }}"
-                        />
-                        <label class="form__label form__label--floating" for="autoimdb">
-                            IMDB ID
-                        </label>
-                    </p>
-                    <p class="form__group">
-                        <input
-                            id="autotvdb"
-                            class="form__text"
-                            inputmode="numeric"
-                            name="tvdb"
-                            pattern="[0-9]*"
-                            placeholder=" "
-                            type="text"
-                            value="{{ $rss->object_torrent->tvdb }}"
-                        />
-                        <label class="form__label form__label--floating" for="autotvdb">
-                            TVDB ID
-                        </label>
-                    </p>
-                    <p class="form__group">
-                        <input type="hidden" name="mal" value="0" />
-                        <input
-                            id="automal"
-                            class="form__text"
-                            inputmode="numeric"
-                            name="mal"
-                            pattern="[0-9]*"
-                            placeholder=" "
-                            type="text"
-                            value="{{ $rss->object_torrent->mal }}"
-                        />
-                        <label class="form__label form__label--floating" for="automal">
-                            MAL ID
-                        </label>
-                    </p>
-                </div>
-                <div class="form__group--horizontal">
                     <div class="form__group">
                         <fieldset class="form__fieldset">
                             <legend class="form__legend">{{ __('torrent.category') }}</legend>
@@ -202,50 +139,6 @@
                                                 @checked(is_array($rss->object_torrent->types) && in_array((string)$type->id, $rss->object_torrent->types, true))
                                             />
                                             {{ $type->name }}
-                                        </label>
-                                    </p>
-                                @endforeach
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="form__group">
-                        <fieldset class="form__fieldset">
-                            <legend class="form__legend">{{ __('torrent.resolution') }}</legend>
-                            <div class="form__fieldset-checkbox-container">
-                                @foreach ($resolutions as $resolution)
-                                    <p class="form__group">
-                                        <label class="form__label">
-                                            <input
-                                                id="{{ $resolution->name }}"
-                                                class="form__checkbox"
-                                                name="resolutions[]"
-                                                type="checkbox"
-                                                value="{{ $resolution->id }}"
-                                                @checked(is_array($rss->object_torrent->resolutions) && in_array((string)$resolution->id, $rss->object_torrent->resolutions, true))
-                                            />
-                                            {{ $resolution->name }}
-                                        </label>
-                                    </p>
-                                @endforeach
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="form__group">
-                        <fieldset class="form__fieldset">
-                            <legend class="form__legend">{{ __('torrent.genre') }}</legend>
-                            <div class="form__fieldset-checkbox-container">
-                                @foreach ($genres as $genre)
-                                    <p class="form__group">
-                                        <label class="form__label">
-                                            <input
-                                                id="{{ $genre->name }}"
-                                                class="form__checkbox"
-                                                name="genres[]"
-                                                type="checkbox"
-                                                value="{{ $genre->id }}"
-                                                @checked(is_array($rss->object_torrent->genres) && in_array((string)$genre->id, $rss->object_torrent->genres, true))
-                                            />
-                                            {{ $genre->name }}
                                         </label>
                                     </p>
                                 @endforeach

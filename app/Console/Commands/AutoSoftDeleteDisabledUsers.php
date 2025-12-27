@@ -24,7 +24,6 @@ use App\Models\FreeleechToken;
 use App\Models\Group;
 use App\Models\History;
 use App\Models\Like;
-use App\Models\Message;
 use App\Models\Participant;
 use App\Models\Peer;
 use App\Models\Post;
@@ -71,7 +70,11 @@ class AutoSoftDeleteDisabledUsers extends Command
 
             foreach ($users as $user) {
                 $user->update([
+                    'can_upload'   => false,
                     'can_download' => false,
+                    'can_comment'  => false,
+                    'can_invite'   => false,
+                    'can_request'  => false,
                     'group_id'     => UserGroup::PRUNED->value,
                     'deleted_by'   => User::SYSTEM_USER_ID,
                 ]);
@@ -101,7 +104,6 @@ class AutoSoftDeleteDisabledUsers extends Command
                 ]);
 
                 Participant::where('user_id', '=', $user->id)->delete();
-                Message::where('user_id', '=', $user->id)->delete();
                 Like::where('user_id', '=', $user->id)->delete();
                 Thank::where('user_id', '=', $user->id)->delete();
                 Peer::where('user_id', '=', $user->id)->delete();

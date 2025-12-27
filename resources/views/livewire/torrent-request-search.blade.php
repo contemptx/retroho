@@ -30,26 +30,14 @@
                                 {{ __('common.type') }}
                                 @include('livewire.includes._sort-icon', ['field' => 'type_id'])
                             </th>
-                            <th wire:click="sortBy('resolution_id')" role="columnheader button">
-                                {{ __('common.resolution') }}
-                                @include('livewire.includes._sort-icon', ['field' => 'resolution_id'])
-                            </th>
                             <th wire:click="sortBy('user_id')" role="columnheader button">
                                 {{ __('common.author') }}
                                 @include('livewire.includes._sort-icon', ['field' => 'user_id'])
-                            </th>
-                            <th wire:click="sortBy('votes')" role="columnheader button">
-                                <i class="{{ config('other.font-awesome') }} fa-thumbs-up"></i>
-                                @include('livewire.includes._sort-icon', ['field' => 'votes'])
                             </th>
                             <th>
                                 <i
                                     class="{{ config('other.font-awesome') }} fa-comment-alt-lines"
                                 ></i>
-                            </th>
-                            <th wire:click="sortBy('bounty')" role="columnheader button">
-                                <i class="{{ config('other.font-awesome') }} fa-coins"></i>
-                                @include('livewire.includes._sort-icon', ['field' => 'bounty'])
                             </th>
                             <th wire:click="sortBy('created_at')" role="columnheader button">
                                 {{ __('common.created_at') }}
@@ -70,16 +58,13 @@
                                 </td>
                                 <td>{{ $torrentRequest->category->name }}</td>
                                 <td>{{ $torrentRequest->type->name }}</td>
-                                <td>{{ $torrentRequest->resolution->name ?? 'Unknown' }}</td>
                                 <td>
                                     <x-user_tag
                                         :user="$torrentRequest->user"
                                         :anon="$torrentRequest->anon"
                                     />
                                 </td>
-                                <td>{{ $torrentRequest->votes }}</td>
                                 <td>{{ $torrentRequest->comments_count }}</td>
-                                <td>{{ number_format($torrentRequest->bounty) }}</td>
                                 <td>
                                     <time
                                         datetime="{{ $torrentRequest->created_at }}"
@@ -155,52 +140,6 @@
                         </p>
                     </div>
                     <div class="form__group--short-horizontal">
-                        <p class="form__group">
-                            <input
-                                id="tmdbId"
-                                wire:model.live="tmdbId"
-                                class="form__text"
-                                placeholder=" "
-                            />
-                            <label class="form__label form__label--floating" for="tmdbId">
-                                TMDb ID
-                            </label>
-                        </p>
-                        <p class="form__group">
-                            <input
-                                id="imdbId"
-                                wire:model.live="imdbId"
-                                class="form__text"
-                                placeholder=" "
-                            />
-                            <label class="form__label form__label--floating" for="imdbId">
-                                IMDb ID
-                            </label>
-                        </p>
-                        <p class="form__group">
-                            <input
-                                id="tvdbId"
-                                wire:model.live="tvdbId"
-                                class="form__text"
-                                placeholder=" "
-                            />
-                            <label class="form__label form__label--floating" for="tvdbId">
-                                TVDb ID
-                            </label>
-                        </p>
-                        <p class="form__group">
-                            <input
-                                id="malId"
-                                wire:model.live="malId"
-                                class="form__text"
-                                placeholder=" "
-                            />
-                            <label class="form__label form__label--floating" for="malId">
-                                MAL ID
-                            </label>
-                        </p>
-                    </div>
-                    <div class="form__group--short-horizontal">
                         <div class="form__group">
                             <fieldset class="form__fieldset">
                                 <legend class="form__legend">{{ __('torrent.category') }}</legend>
@@ -212,7 +151,7 @@
                                                     class="form__checkbox"
                                                     type="checkbox"
                                                     value="{{ $category->id }}"
-                                                    wire:model.live="categoryIds"
+                                                    wire:model.live="categories"
                                                 />
                                                 {{ $category->name }}
                                             </label>
@@ -232,69 +171,9 @@
                                                     class="form__checkbox"
                                                     type="checkbox"
                                                     value="{{ $type->id }}"
-                                                    wire:model.live="typeIds"
+                                                    wire:model.live="types"
                                                 />
                                                 {{ $type->name }}
-                                            </label>
-                                        </p>
-                                    @endforeach
-                                </div>
-                            </fieldset>
-                        </div>
-                        <div class="form__group">
-                            <fieldset class="form__fieldset">
-                                <legend class="form__legend">{{ __('common.resolution') }}</legend>
-                                <div class="form__fieldset-checkbox-container">
-                                    @foreach ($resolutions as $resolution)
-                                        <p class="form__group">
-                                            <label class="form__label">
-                                                <input
-                                                    class="form__checkbox"
-                                                    type="checkbox"
-                                                    value="{{ $resolution->id }}"
-                                                    wire:model.live="resolutionIds"
-                                                />
-                                                {{ $resolution->name }}
-                                            </label>
-                                        </p>
-                                    @endforeach
-                                </div>
-                            </fieldset>
-                        </div>
-                        <div class="form__group">
-                            <fieldset class="form__fieldset">
-                                <legend class="form__legend">{{ __('torrent.genre') }}</legend>
-                                <div class="form__fieldset-checkbox-container">
-                                    @foreach ($genres as $genre)
-                                        <p class="form__group">
-                                            <label class="form__label">
-                                                <input
-                                                    class="form__checkbox"
-                                                    type="checkbox"
-                                                    value="{{ $genre->id }}"
-                                                    wire:model.live="genreIds"
-                                                />
-                                                {{ $genre->name }}
-                                            </label>
-                                        </p>
-                                    @endforeach
-                                </div>
-                            </fieldset>
-                        </div>
-                        <div class="form__group">
-                            <fieldset class="form__fieldset">
-                                <legend class="form__legend">Primary Language</legend>
-                                <div class="form__fieldset-checkbox-container">
-                                    @foreach ($primaryLanguages as $primaryLanguage)
-                                        <p class="form__group">
-                                            <label class="form__label">
-                                                <input
-                                                    class="form__checkbox"
-                                                    type="checkbox"
-                                                    value="{{ $primaryLanguage }}"
-                                                    wire:model.live="primaryLanguageNames"
-                                                />
-                                                {{ $primaryLanguage }}
                                             </label>
                                         </p>
                                     @endforeach
@@ -421,26 +300,6 @@
                 <div class="key-value__group">
                     <dt>{{ __('request.unfilled') }}:</dt>
                     <dd>{{ number_format($torrentRequestStat->unfilled) }}</dd>
-                </div>
-                <div class="key-value__group">
-                    <dt>{{ __('request.total-bounty') }}:</dt>
-                    <dd>
-                        {{ number_format($torrentRequestBountyStat->total) }} {{ __('bon.bon') }}
-                    </dd>
-                </div>
-                <div class="key-value__group">
-                    <dt>{{ __('request.bounty-claimed') }}:</dt>
-                    <dd>
-                        {{ number_format($torrentRequestBountyStat->claimed) }}
-                        {{ __('bon.bon') }}
-                    </dd>
-                </div>
-                <div class="key-value__group">
-                    <dt>{{ __('request.bounty-unclaimed') }}:</dt>
-                    <dd>
-                        {{ number_format($torrentRequestBountyStat->unclaimed) }}
-                        {{ __('bon.bon') }}
-                    </dd>
                 </div>
             </dl>
         </section>

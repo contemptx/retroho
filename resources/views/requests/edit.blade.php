@@ -26,7 +26,15 @@
 @section('page', 'page__request--edit')
 
 @section('main')
-    @if ($user->can_request ?? $user->group->can_request)
+    @if ($user->can_request == 0)
+        <section class="panelV2">
+            <h2 class="panel__heading">
+                <i class="{{ config('other.font-awesome') }} fa-times text-danger"></i>
+                {{ __('request.no-privileges') }}!
+            </h2>
+            <p class="panel__body">{{ __('request.no-privileges-desc') }}!</p>
+        </section>
+    @else
         <section class="panelV2">
             <h2 class="panel__heading">{{ __('request.edit-request') }}</h2>
             <div class="panel__body">
@@ -84,109 +92,6 @@
                             {{ __('request.type') }}
                         </label>
                     </p>
-                    <p class="form__group">
-                        <select
-                            id="resolution_id"
-                            class="form__select"
-                            name="resolution_id"
-                            required
-                        >
-                            <option hidden disabled selected value=""></option>
-                            @foreach ($resolutions as $resolution)
-                                <option
-                                    value="{{ $resolution->id }}"
-                                    @selected($torrentRequest->resolution_id == $resolution->id)
-                                >
-                                    {{ $resolution->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <label class="form__label form__label--floating" for="resolution_id">
-                            {{ __('request.resolution') }}
-                        </label>
-                    </p>
-                    <div class="form__group--short-horizontal">
-                        <p class="form__group">
-                            <input type="hidden" name="tmdb" value="0" />
-                            <input
-                                id="autotmdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="tmdb"
-                                pattern="[0-9]*"
-                                required
-                                type="text"
-                                value="{{ $torrentRequest->tmdb ?: old('tmdb') }}"
-                            />
-                            <label class="form__label form__label--floating" for="autotmdb">
-                                TMDB ID
-                            </label>
-                            <output name="apimatch" id="apimatch" for="torrent"></output>
-                        </p>
-                        <p class="form__group">
-                            <input type="hidden" name="imdb" value="0" />
-                            <input
-                                id="autoimdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="imdb"
-                                pattern="[0-9]*"
-                                required
-                                type="text"
-                                value="{{ $torrentRequest->imdb ?: old('imdb') }}"
-                            />
-                            <label class="form__label form__label--floating" for="autoimdb">
-                                IMDB ID
-                            </label>
-                        </p>
-                        <p class="form__group">
-                            <input type="hidden" name="tvdb" value="0" />
-                            <input
-                                id="autotvdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="tvdb"
-                                pattern="[0-9]*"
-                                placeholder=" "
-                                type="text"
-                                value="{{ $torrentRequest->tvdb ?: old('tvdb') ?? '0' }}"
-                            />
-                            <label class="form__label form__label--floating" for="autotvdb">
-                                TVDB ID
-                            </label>
-                        </p>
-                        <p class="form__group">
-                            <input type="hidden" name="mal" value="0" />
-                            <input
-                                id="automal"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="mal"
-                                pattern="[0-9]*"
-                                placeholder=" "
-                                type="text"
-                                value="{{ $torrentRequest->mal ?: old('mal') ?? '0' }}"
-                            />
-                            <label class="form__label form__label--floating" for="automal">
-                                MAL ID ({{ __('torrent.required-anime') }})
-                            </label>
-                        </p>
-                        <p class="form__group">
-                            <input
-                                id="igdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="igdb"
-                                pattern="[0-9]*"
-                                placeholder=" "
-                                type="text"
-                                value="{{ $torrentRequest->igdb ?: old('igdb') ?? '0' }}"
-                            />
-                            <label class="form__label form__label--floating" for="igdb">
-                                IGDB ID ({{ __('request.required') }} For Games)
-                            </label>
-                        </p>
-                    </div>
                     @livewire('bbcode-input', [
                         'name' => 'description',
                         'label' => __('request.description'),
@@ -212,14 +117,6 @@
                     </p>
                 </form>
             </div>
-        </section>
-    @else
-        <section class="panelV2">
-            <h2 class="panel__heading">
-                <i class="{{ config('other.font-awesome') }} fa-times text-danger"></i>
-                {{ __('request.no-privileges') }}!
-            </h2>
-            <p class="panel__body">{{ __('request.no-privileges-desc') }}!</p>
         </section>
     @endif
 @endsection

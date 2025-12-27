@@ -38,14 +38,6 @@
         {{ __('user.top-uploaders-count') }}
     </a>
 </li>
-<li class="{{ Route::is('bankers') ? 'nav-tab--active' : 'nav-tabV2' }}">
-    <a
-        class="{{ Route::is('bankers') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-        href="{{ route('bankers') }}"
-    >
-        {{ __('user.top-bankers') }}
-    </a>
-</li>
 <li class="{{ Route::is('seedtime') ? 'nav-tab--active' : 'nav-tabV2' }}">
     <a
         class="{{ Route::is('seedtime') ? 'nav-tab--active__link' : 'nav-tab__link' }}"

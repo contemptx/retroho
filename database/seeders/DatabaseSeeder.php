@@ -28,24 +28,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             GroupsTableSeeder::class,
             UsersTableSeeder::class,
-            BonExchangeTableSeeder::class,
-            AchievementDetailsTableSeeder::class,
             PagesTableSeeder::class,
             CategoriesTableSeeder::class,
             TypesTableSeeder::class,
             ArticlesTableSeeder::class,
             ForumsTableSeeder::class,
             ForumPermissionsTableSeeder::class,
-            ChatroomTableSeeder::class,
-            ChatStatusSeeder::class,
-            BotsTableSeeder::class,
-            MediaLanguagesSeeder::class,
-            ResolutionsTableSeeder::class,
             TicketCategoriesTableSeeder::class,
             TicketPrioritiesTableSeeder::class,
-            DistributorsTableSeeder::class,
-            RegionsTableSeeder::class,
-            OccupationSeeder::class,
         ]);
     }
 }

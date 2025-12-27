@@ -55,7 +55,6 @@ class TopicPostSearch extends Component
         $posts = Post::query()
             ->with('user', 'user.group')
             ->withCount('likes', 'dislikes', 'authorPosts', 'authorTopics')
-            ->withSum('tips', 'bon')
             ->where('topic_id', '=', $this->topic->id)
             ->authorized(canReadTopic: true)
             ->when($this->search !== '', fn ($query) => $query->where('content', 'LIKE', '%'.$this->search.'%'))

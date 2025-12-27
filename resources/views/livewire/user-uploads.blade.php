@@ -162,15 +162,6 @@
                         <i class="fas fa-check-circle"></i>
                         @include('livewire.includes._sort-icon', ['field' => 'times_completed'])
                     </th>
-                    <th
-                        class="user-uploads__tips-header"
-                        wire:click="sortBy('tips_sum_bon')"
-                        role="columnheader button"
-                        title="{{ __('bon.tips') }}"
-                    >
-                        <i class="fas fa-coins"></i>
-                        @include('livewire.includes._sort-icon', ['field' => 'tips_sum_bon'])
-                    </th>
                     @if (config('other.thanks-system.is-enabled'))
                         <th
                             class="user-uploads__thanks-header"
@@ -251,9 +242,6 @@
                                         {{ $torrent->times_completed }}
                                     </span>
                                 </a>
-                            </td>
-                            <td class="user-uploads__tips">
-                                {{ $torrent->tips_sum_bon ?? 0 }}
                             </td>
                             @if (config('other.thanks-system.is-enabled'))
                                 <td class="user-uploads__thanks">

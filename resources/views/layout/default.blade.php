@@ -6,7 +6,6 @@
     <body>
         <div class="alerts">
             @include('cookie-consent::index')
-            @include('partials.alerts')
         </div>
         <header>
             @include('partials.top_nav')
@@ -26,9 +25,6 @@
                     @yield('nav-tabs')
                 </ul>
             </nav>
-            @if (Session::has('achievement'))
-                @include('partials.achievement_modal')
-            @endif
 
             @if (Session::has('errors'))
                 <div id="ERROR_COPY" style="display: none">
@@ -69,7 +65,7 @@
 
         @vite('resources/js/app.js')
 
-        @if (config('other.freeleech') == true || config('other.invite-only') == false || config('other.doubleup') == true)
+        @if (config('other.freeleech') == true || config('other.doubleup') == true)
             <script nonce="{{ HDVinnie\SecureHeaders\SecureHeaders::nonce('script') }}">
                 function timer() {
                     return {

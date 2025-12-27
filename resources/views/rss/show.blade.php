@@ -30,7 +30,6 @@
                             <strong>Name</strong>: {{ $torrent->name }}<br>
                             <strong>Category</strong>: {{ $torrent->category->name }}<br>
                             <strong>Type</strong>: {{ $torrent->type->name }}<br>
-                            <strong>Resolution</strong>: {{ $torrent->resolution->name ?? 'No Res' }}<br>
                             <strong>Size</strong>: {{ $torrent->getSize() }}<br>
                             <strong>Uploaded</strong>: {{ $torrent->created_at->diffForHumans() }}<br>
                             <strong>Seeders</strong>: {{ $torrent->seeders }} |
@@ -42,28 +41,6 @@
                             @else
                                 {{ __('common.anonymous') }} {{ __('torrent.uploader') }}
                             @endif<br>
-                            @if (($torrent->category->movie_meta || $torrent->category->tv_meta) && $torrent->imdb != 0)
-                                IMDB Link:<a href="https://anon.to?http://www.imdb.com/title/tt{{ $torrent->imdb }}"
-                                             target="_blank">tt{{ $torrent->imdb }}</a><br>
-                            @endif
-                            @if ($torrent->category->movie_meta && $torrent->tmdb != 0)
-                                TMDB Link: <a href="https://anon.to?https://www.themoviedb.org/movie/{{ $torrent->tmdb }}"
-                                              target="_blank">{{ $torrent->tmdb }}</a><br>
-                            @elseif ($torrent->category->tv_meta && $torrent->tmdb != 0)
-                                TMDB Link: <a href="https://anon.to?https://www.themoviedb.org/tv/{{ $torrent->tmdb }}"
-                                              target="_blank">{{ $torrent->tmdb }}</a><br>
-                            @endif
-                            @if (($torrent->category->tv_meta) && $torrent->tvdb != 0)
-                                TVDB Link:<a href="https://anon.to?https://www.thetvdb.com/?tab=series&id={{ $torrent->tvdb }}"
-                                             target="_blank">{{ $torrent->tvdb }}</a><br>
-                            @endif
-                            @if (($torrent->category->movie_meta || $torrent->category->tv_meta) && $torrent->mal != 0)
-                                MAL Link:<a href="https://anon.to?https://myanimelist.net/anime/{{ $torrent->mal }}"
-                                             target="_blank">{{ $torrent->mal }}</a><br>
-                            @endif
-                            @if ($torrent->internal == 1)
-                                <comments>This is a high quality internal release!</comments>
-                            @endif
                         </p>]]>
                     </description>
                     <dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">

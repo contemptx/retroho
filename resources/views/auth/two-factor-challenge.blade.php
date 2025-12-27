@@ -41,8 +41,7 @@
                 >
                     @csrf
                     <a class="auth-form__branding" href="{{ route('home.index') }}">
-                        <i class="fal fa-tv-retro"></i>
-                        <span class="auth-form__site-logo">{{ \config('other.title') }}</span>
+                        <img src="{{ url('favicon.ico') }}" style="width: 85px;" alt="{{ \config('other.title') }}" />
                     </a>
                     <ul class="auth-form__important-infos">
                         <li class="auth-form__important-info" x-show="!recovery">

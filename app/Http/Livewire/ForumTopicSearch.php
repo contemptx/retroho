@@ -121,7 +121,7 @@ class ForumTopicSearch extends Component
                 fn ($query) => $query
                     ->whereDoesntHave('reads', fn ($query) => $query->whereBelongsTo(auth()->user()))
             )
-            ->orderByDesc('priority')
+            ->orderByDesc('pinned')
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(25);
     }

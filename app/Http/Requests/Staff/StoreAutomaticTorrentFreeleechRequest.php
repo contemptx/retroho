@@ -41,7 +41,6 @@ class StoreAutomaticTorrentFreeleechRequest extends FormRequest
             'size'                 => ['nullable', 'integer', 'min:0'],
             'category_id'          => ['nullable', 'integer', 'exists:categories,id'],
             'type_id'              => ['nullable', 'integer', 'exists:types,id'],
-            'resolution_id'        => ['nullable', 'integer', 'exists:resolutions,id'],
             'freeleech_percentage' => ['required', 'integer', 'max:100', 'min:0'],
         ];
     }

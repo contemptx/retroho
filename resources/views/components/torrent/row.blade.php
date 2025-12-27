@@ -1,80 +1,18 @@
 @props([
     'torrent',
-    'meta',
     'personalFreeleech',
 ])
 
 <tr
     @class([
-        'torrent-search--list__row' => auth()->user()->settings?->show_poster,
-        'torrent-search--list__no-poster-row' => ! auth()->user()->settings?->show_poster,
+        'torrent-search--list__no-poster-row',
         'torrent-search--list__sticky-row' => $torrent->sticky,
     ])
     data-torrent-id="{{ $torrent->id }}"
-    data-igdb-id="{{ $torrent->igdb }}"
-    data-imdb-id="{{ $torrent->imdb }}"
-    data-tmdb-id="{{ $torrent->tmdb }}"
-    data-tvdb-id="{{ $torrent->tvdb }}"
-    data-mal-id="{{ $torrent->mal }}"
     data-category-id="{{ $torrent->category_id }}"
     data-type-id="{{ $torrent->type_id }}"
-    data-resolution-id="{{ $torrent->resolution_id }}"
     wire:key="torrent-search-row-{{ $torrent->id }}"
 >
-    @if (auth()->user()->settings?->show_poster)
-        <td class="torrent-search--list__poster">
-            <a
-                href="{{ route('torrents.similar', ['category_id' => $torrent->category_id, 'tmdb' => $torrent->tmdb]) }}"
-            >
-                @if ($torrent->category->movie_meta || $torrent->category->tv_meta)
-                    <img
-                        src="{{ isset($meta->poster) ? tmdb_image('poster_small', $meta->poster) : 'https://via.placeholder.com/90x135' }}"
-                        class="torrent-search--list__poster-img"
-                        loading="lazy"
-                        alt="{{ __('torrent.similar') }}"
-                    />
-                @endif
-
-                @if ($torrent->category->game_meta)
-                    <img
-                        style="height: 80px"
-                        src="{{ isset($meta->cover) ? 'https://images.igdb.com/igdb/image/upload/t_cover_small_2x/' . $meta->cover['image_id'] . '.png' : 'https://via.placeholder.com/90x135' }}"
-                        class="torrent-search--list__poster-img"
-                        loading="lazy"
-                        alt="{{ __('torrent.similar') }}"
-                    />
-                @endif
-
-                @if ($torrent->category->music_meta)
-                    <img
-                        src="https://via.placeholder.com/90x135"
-                        class="torrent-search--list__poster-img"
-                        loading="lazy"
-                        alt="{{ __('torrent.similar') }}"
-                    />
-                @endif
-
-                @if ($torrent->category->no_meta)
-                    @if (file_exists(public_path() . '/files/img/torrent-cover_' . $torrent->id . '.jpg'))
-                        <img
-                            src="{{ url('files/img/torrent-cover_' . $torrent->id . '.jpg') }}"
-                            class="torrent-search--list__poster-img"
-                            loading="lazy"
-                            alt="{{ __('torrent.similar') }}"
-                        />
-                    @else
-                        <img
-                            src="https://via.placeholder.com/400x600"
-                            class="torrent-search--list__poster-img"
-                            loading="lazy"
-                            alt="{{ __('torrent.similar') }}"
-                        />
-                    @endif
-                @endif
-            </a>
-        </td>
-    @endif
-
     <td class="torrent-search--list__format">
         <div>
             <div class="torrent-search--list__category">
@@ -85,9 +23,7 @@
                         alt="{{ $torrent->category->name }}"
                         loading="lazy"
                         @style([
-                            'height: 32px',
-                            'padding-top: 1px' => $torrent->category->movie_meta || $torrent->category->tv_meta,
-                            'padding-top: 12px' => ! ($torrent->category->movie_meta || $torrent->category->tv_meta),
+                            'height: 35px',
                         ])
                     />
                 @else
@@ -95,19 +31,11 @@
                         class="{{ $torrent->category->icon }} category__icon"
                         @style([
                             'font-size: 24px',
-                            'padding-top: 1px' => $torrent->category->movie_meta || $torrent->category->tv_meta,
-                            'padding-top: 12px' => ! ($torrent->category->movie_meta || $torrent->category->tv_meta),
                         ])
                     ></i>
                 @endif
             </div>
             <div class="torrent-search--list__resolution-and-type">
-                @if ($torrent->category->movie_meta || $torrent->category->tv_meta)
-                    <span class="torrent-search--list__resolution">
-                        {{ $torrent->resolution->name ?? 'No Res' }}
-                    </span>
-                @endif
-
                 <span class="torrent-search--list__type">
                     {{ $torrent->type->name }}
                 </span>
@@ -118,6 +46,7 @@
         <div>
             <a
                 class="torrent-search--list__name"
+                style="padding: 0; margin: 0;"
                 href="{{ route('torrents.show', ['id' => $torrent->id]) }}"
             >
                 {{ $torrent->name }}
@@ -141,14 +70,6 @@
                     <i class="{{ config('other.font-awesome') }} fa-pencil-alt"></i>
                 </a>
             @endif
-
-            <button
-                class="form__standard-icon-button"
-                x-data="bookmark({{ $torrent->id }}, {{ Js::from($torrent->bookmarks_exists) }})"
-                x-bind="button"
-            >
-                <i class="{{ config('other.font-awesome') }}" x-bind="icon"></i>
-            </button>
 
             @if (config('torrent.download_check_page'))
                 <a
@@ -179,22 +100,7 @@
             @endif
         </div>
     </td>
-
-    @if ($torrent->category->game_meta)
-        <td
-            class="torrent-search--list__rating {{ rating_color($meta->rating ?? 0) ?? 'text-white' }}"
-        >
-            <span>{{ round($meta->rating ?? 0) }}%</span>
-        </td>
-    @elseif ($torrent->category->movie_meta || $torrent->category->tv_meta)
-        <td class="torrent-search--list__rating" title="{{ $meta->vote_count ?? 0 }} Votes">
-            <span class="{{ rating_color($meta->vote_average ?? 0) ?? 'text-white' }}">
-                {{ round(($meta->vote_average ?? 0) * 10) }}%
-            </span>
-        </td>
-    @else
-        <td class="torrent-search--list__rating">N/A</td>
-    @endif
+    <td class="torrent-search--list__rating"></td>
     <td class="torrent-search--list__size">
         <span>{{ $torrent->getSize() }}</span>
     </td>

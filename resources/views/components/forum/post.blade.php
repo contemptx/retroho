@@ -20,51 +20,7 @@
             </span>
         @endif
 
-        @if ($post->tips_sum_bon > 0)
-            <dl class="post__tip-stats">
-                <dt>{{ __('torrent.bon-tipped') }}</dt>
-                <dd>{{ $post->tips_sum_bon ?? 0 }}</dd>
-            </dl>
-        @endif
-
         <menu class="post__toolbar">
-            <li class="post__toolbar-item">
-                <form
-                    class="post__tip"
-                    role="form"
-                    method="POST"
-                    action="{{ route('users.post_tips.store', ['user' => auth()->user()]) }}"
-                >
-                    @csrf
-                    <input type="hidden" name="post_id" value="{{ $post->id }}" />
-                    <input
-                        class="post__tip-input"
-                        inputmode="numeric"
-                        list="quick-tip-values"
-                        name="bon"
-                        pattern="[0-9]*"
-                        placeholder="0"
-                        type="text"
-                        value="0"
-                    />
-                    <button
-                        class="post__tip-button"
-                        type="submit"
-                        title="{{ __('forum.tip-this-post') }}"
-                    >
-                        Tip
-                    </button>
-                    <datalist id="quick-tip-values">
-                        <option value="1000"></option>
-                        <option value="2000"></option>
-                        <option value="5000"></option>
-                        <option value="10000"></option>
-                        <option value="20000"></option>
-                        <option value="50000"></option>
-                        <option value="100000"></option>
-                    </datalist>
-                </form>
-            </li>
             <li class="post__toolbar-item">
                 @livewire('like-button', ['post' => $post, 'likesCount' => $post->likes_count], key('like-'.$post->id))
             </li>

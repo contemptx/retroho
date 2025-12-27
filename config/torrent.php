@@ -34,7 +34,7 @@ return [
     |
     */
 
-    'source' => 'UNIT3D',
+    'source' => 'RetroHo',
 
     /*
     |--------------------------------------------------------------------------
@@ -57,7 +57,7 @@ return [
     |
     */
 
-    'comment' => 'This torrent was downloaded from UNIT3D',
+    'comment' => 'This torrent was downloaded from RetroHo',
 
     /*
     |--------------------------------------------------------------------------

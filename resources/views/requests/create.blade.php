@@ -18,7 +18,7 @@
 @section('page', 'page__request--create')
 
 @section('main')
-    @if ($user->can_request ?? $user->group->can_request)
+    @if ($user->can_request)
         <section
             class="panelV2"
             x-data="{
@@ -83,150 +83,11 @@
                             {{ __('request.type') }}
                         </label>
                     </p>
-                    <p class="form__group">
-                        <select
-                            id="resolution_id"
-                            class="form__select"
-                            name="resolution_id"
-                            required
-                        >
-                            <option hidden disabled selected value=""></option>
-                            @foreach ($resolutions as $resolution)
-                                <option
-                                    value="{{ $resolution->id }}"
-                                    @selected(old('resolution_id') == $resolution->id)
-                                >
-                                    {{ $resolution->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <label class="form__label form__label--floating" for="resolution_id">
-                            {{ __('request.resolution') }}
-                        </label>
-                    </p>
-                    <div
-                        class="form__group--horizontal"
-                        x-show="cats[cat].type === 'movie' || cats[cat].type === 'tv' || cats[cat].type === 'game'"
-                    >
-                        <p
-                            class="form__group"
-                            x-show="cats[cat].type === 'movie' || cats[cat].type === 'tv'"
-                        >
-                            <input type="hidden" name="tmdb" value="0" />
-                            <input
-                                id="autotmdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="tmdb"
-                                pattern="[0-9]*"
-                                required
-                                type="text"
-                                x-bind:value="cats[cat].type === 'movie' || cats[cat].type === 'tv' ? '{{ $tmdb ?: old('tmdb') }}' : '0'"
-                                x-bind:required="cats[cat].type === 'movie' || cats[cat].type === 'tv'"
-                            />
-                            <label class="form__label form__label--floating" for="autotmdb">
-                                TMDB ID
-                            </label>
-                            <span class="form__hint">Numeric digits only.</span>
-                        </p>
-                        <p
-                            class="form__group"
-                            x-show="cats[cat].type === 'movie' || cats[cat].type === 'tv'"
-                        >
-                            <input type="hidden" name="imdb" value="0" />
-                            <input
-                                id="autoimdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="imdb"
-                                pattern="[0-9]*"
-                                required
-                                type="text"
-                                x-bind:value="cats[cat].type === 'movie' || cats[cat].type === 'tv' ? '{{ $imdb ?: old('imdb') }}' : '0'"
-                                x-bind:required="cats[cat].type === 'movie' || cats[cat].type === 'tv'"
-                            />
-                            <label class="form__label form__label--floating" for="autoimdb">
-                                IMDB ID
-                            </label>
-                            <span class="form__hint">Numeric digits only.</span>
-                        </p>
-                        <p class="form__group" x-show="cats[cat].type === 'tv'">
-                            <input type="hidden" name="tvdb" value="0" />
-                            <input
-                                id="autotvdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="tvdb"
-                                pattern="[0-9]*"
-                                placeholder=" "
-                                type="text"
-                                x-bind:value="cats[cat].type === 'tv' ? '{{ $tvdb ?: old('tvdb') }}' : '0'"
-                                x-bind:required="cats[cat].type === 'tv'"
-                            />
-                            <label class="form__label form__label--floating" for="autotvdb">
-                                TVDB ID
-                            </label>
-                            <span class="form__hint">Numeric digits only.</span>
-                        </p>
-                        <p
-                            class="form__group"
-                            x-show="cats[cat].type === 'movie' || cats[cat].type === 'tv'"
-                        >
-                            <input type="hidden" name="mal" value="0" />
-                            <input
-                                id="automal"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="mal"
-                                pattern="[0-9]*"
-                                placeholder=" "
-                                type="text"
-                                x-bind:value="cats[cat].type === 'movie' || cats[cat].type === 'tv' ? '{{ $mal ?: old('mal') }}' : '0'"
-                                x-bind:required="cats[cat].type === 'movie' || cats[cat].type === 'tv'"
-                            />
-                            <label class="form__label form__label--floating" for="automal">
-                                MAL ID ({{ __('torrent.required-anime') }})
-                            </label>
-                            <span class="form__hint">
-                                Numeric digits only. Required for anime. Use 0 otherwise.
-                            </span>
-                        </p>
-                        <p class="form__group" x-show="cats[cat].type === 'game'">
-                            <input
-                                id="igdb"
-                                class="form__text"
-                                inputmode="numeric"
-                                name="igdb"
-                                pattern="[0-9]*"
-                                placeholder
-                                type="text"
-                                x-bind:value="cats[cat].type === 'game' ? '{{ $igdb ?: old('igdb') }}' : '0'"
-                                x-bind:required="cats[cat].type === 'game'"
-                            />
-                            <label class="form__label form__label--floating" for="igdb">
-                                IGDB ID ({{ __('request.required') }} For Games)
-                            </label>
-                        </p>
-                    </div>
                     @livewire('bbcode-input', [
                         'name' => 'description',
                         'label' => __('request.description'),
                         'required' => true
                     ])
-                    <p class="form__group">
-                        <input
-                            id="bounty"
-                            class="form__text"
-                            name="bounty"
-                            type="text"
-                            pattern="[0-9]*?[1-9][0-9]{2,}"
-                            value="100"
-                            required
-                        />
-                        <label class="form__label form__label--floating" for="bounty">
-                            {{ __('request.reward') }} ({{ __('request.reward-desc') }})
-                        </label>
-                    </p>
                     <p class="form__group">
                         <input type="hidden" name="anon" value="0" />
                         <input
@@ -258,12 +119,12 @@
     @endif
 @endsection
 
-@if ($user->can_request ?? $user->group->can_request)
+@if ($user->can_request)
     @section('sidebar')
         <section class="panelV2">
             <h2 class="panel__heading">{{ __('common.info') }}</h2>
             <div class="panel__body">
-                {{ __('request.no-imdb-id') }}
+               Please be descriptive when creating a torrent request.
             </div>
         </section>
     @endsection

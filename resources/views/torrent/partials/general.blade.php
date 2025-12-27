@@ -1,5 +1,9 @@
 <ul class="torrent__tags">
     <li class="torrent__category">
+        SKU: {{ $torrent->sku ?? 'Unknown' }}
+    </li>
+
+    <li class="torrent__category">
         <a
             class="torrent__category-link"
             href="{{ route('torrents.index', ['categoryIds' => [$torrent->category->id]]) }}"
@@ -7,16 +11,6 @@
             {{ $torrent->category->name }}
         </a>
     </li>
-    @if ($torrent->resolution)
-        <li class="torrent__resolution">
-            <a
-                class="torrent__resolution-link"
-                href="{{ route('torrents.index', ['resolutionIds' => [$torrent->category->id]]) }}"
-            >
-                {{ $torrent->resolution->name }}
-            </a>
-        </li>
-    @endif
 
     @isset($torrent->region)
         <li class="torrent__region">

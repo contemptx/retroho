@@ -16,40 +16,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Achievements\UserMade100Posts;
-use App\Achievements\UserMade200Posts;
-use App\Achievements\UserMade25Posts;
-use App\Achievements\UserMade300Posts;
-use App\Achievements\UserMade400Posts;
-use App\Achievements\UserMade500Posts;
-use App\Achievements\UserMade50Posts;
-use App\Achievements\UserMade600Posts;
-use App\Achievements\UserMade700Posts;
-use App\Achievements\UserMade800Posts;
-use App\Achievements\UserMade900Posts;
-use App\Achievements\UserMadeFirstPost;
 use App\Models\Post;
 use App\Models\Topic;
 use App\Models\User;
 use App\Notifications\NewPost;
 use App\Notifications\NewPostTag;
-use App\Repositories\ChatRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Exception;
 
-/**
- * @see \Tests\Todo\Feature\Http\Controllers\PostControllerTest
- */
 class PostController extends Controller
 {
-    /**
-     * PostController Constructor.
-     */
-    public function __construct(private readonly ChatRepository $chatRepository)
-    {
-    }
-
     /**
      * Posts Index.
      */
@@ -97,12 +74,11 @@ class PostController extends Controller
         ]);
 
         // Post To Chatbox and Notify Subscribers
-        $appUrl = config('app.url');
-        $postUrl = \sprintf('%s/forums/topics/%s/posts/%s', $appUrl, $topic->id, $post->id);
-        $realUrl = \sprintf('/forums/topics/%s/posts/%s', $topic->id, $post->id);
-        $profileUrl = \sprintf('%s/users/%s', $appUrl, $user->username);
+        $realUrl = sprintf('/forums/topics/%s/posts/%s', $topic->id, $post->id);
 
-        if (config('other.staff-forum-notify') && ($forum->id == config('other.staff-forum-id') || $forum->forum_category_id == config('other.staff-forum-id'))) {
+        if (config('other.staff-forum-notify') && ($forum->id == config(
+            'other.staff-forum-id'
+        ) || $forum->forum_category_id == config('other.staff-forum-id'))) {
             $staffers = User::query()
                 ->where('id', '!=', $user->id)
                 ->whereRelation('group', 'is_modo', '=', true)
@@ -112,10 +88,13 @@ class PostController extends Controller
                 $staffer->notify(new NewPost('staff', $user, $post));
             }
         } else {
-            $this->chatRepository->systemMessage(\sprintf('[url=%s]%s[/url] has left a reply on topic [url=%s]%s[/url]', $profileUrl, $user->username, $postUrl, $topic->name));
-
             // Notify All Subscribers Of New Reply
-            if ($topic->first_post_user_id !== $user->id && $user->acceptsNotification(auth()->user(), $user, 'forum', 'show_forum_topic')) {
+            if ($topic->first_post_user_id !== $user->id && $user->acceptsNotification(
+                auth()->user(),
+                $user,
+                'forum',
+                'show_forum_topic'
+            )) {
                 $user->notify(new NewPost('topic', $user, $post));
             }
 
@@ -139,28 +118,14 @@ class PostController extends Controller
                 }
             }
 
-            // Achievements
-            $user->unlock(new UserMadeFirstPost());
-            $user->addProgress(new UserMade25Posts(), 1);
-            $user->addProgress(new UserMade50Posts(), 1);
-            $user->addProgress(new UserMade100Posts(), 1);
-            $user->addProgress(new UserMade200Posts(), 1);
-            $user->addProgress(new UserMade300Posts(), 1);
-            $user->addProgress(new UserMade400Posts(), 1);
-            $user->addProgress(new UserMade500Posts(), 1);
-            $user->addProgress(new UserMade600Posts(), 1);
-            $user->addProgress(new UserMade700Posts(), 1);
-            $user->addProgress(new UserMade800Posts(), 1);
-            $user->addProgress(new UserMade900Posts(), 1);
+            // User Tagged Notification
+            preg_match_all('/@([\w\-]+)/', (string) $post->content, $matches);
+            $users = User::whereIn('username', $matches[1])->where('id', '!=', $user->id)->get();
+            Notification::send($users, new NewPostTag($post));
+
+            return redirect()->to($realUrl)
+                ->withSuccess(trans('forum.reply-topic-success'));
         }
-
-        // User Tagged Notification
-        preg_match_all('/@([\w\-]+)/', (string) $post->content, $matches);
-        $users = User::whereIn('username', $matches[1])->where('id', '!=', $user->id)->get();
-        Notification::send($users, new NewPostTag($post));
-
-        return redirect()->to($realUrl)
-            ->withSuccess(trans('forum.reply-topic-success'));
     }
 
     /**
@@ -198,7 +163,7 @@ class PostController extends Controller
         $user = $request->user();
 
         $post = Post::findOrFail($id);
-        $postUrl = \sprintf('forums/topics/%s/posts/%s', $post->topic->id, $id);
+        $postUrl = sprintf('forums/topics/%s/posts/%s', $post->topic->id, $id);
 
         abort_unless($user->group->is_modo || $user->id === $post->user_id, 403);
 

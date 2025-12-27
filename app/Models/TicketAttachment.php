@@ -36,14 +36,12 @@ use Illuminate\Database\Eloquent\Model;
 class TicketAttachment extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\TicketAttachmentFactory> */
     use HasFactory;
 
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -53,7 +51,7 @@ class TicketAttachment extends Model
     /**
      * Belongs To A Ticket.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Ticket, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Ticket, self>
      */
     public function ticket(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

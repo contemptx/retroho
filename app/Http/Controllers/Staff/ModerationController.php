@@ -23,20 +23,10 @@ use App\Models\Conversation;
 use App\Models\PrivateMessage;
 use App\Models\Scopes\ApprovedScope;
 use App\Models\Torrent;
-use App\Repositories\ChatRepository;
 use App\Services\Unit3dAnnounce;
 
-/**
- * @see \Tests\Todo\Feature\Http\Controllers\Staff\ModerationControllerTest
- */
 class ModerationController extends Controller
 {
-    /**
-     * ModerationController Constructor.
-     */
-    public function __construct(private readonly ChatRepository $chatRepository)
-    {
-    }
 
     /**
      * Torrent Moderation Panel.
@@ -46,15 +36,15 @@ class ModerationController extends Controller
         return view('Staff.moderation.index', [
             'current' => now(),
             'pending' => Torrent::withoutGlobalScope(ApprovedScope::class)
-                ->with(['user.group', 'category', 'type', 'resolution', 'category'])
+                ->with(['user.group', 'category', 'type', 'category'])
                 ->where('status', '=', Torrent::PENDING)
                 ->get(),
             'postponed' => Torrent::withoutGlobalScope(ApprovedScope::class)
-                ->with(['user.group', 'moderated.group', 'category', 'type', 'resolution', 'category'])
+                ->with(['user.group', 'moderated.group', 'category', 'type'])
                 ->where('status', '=', Torrent::POSTPONED)
                 ->get(),
             'rejected' => Torrent::withoutGlobalScope(ApprovedScope::class)
-                ->with(['user.group', 'moderated.group', 'category', 'type', 'resolution', 'category'])
+                ->with(['user.group', 'moderated.group', 'category', 'type'])
                 ->where('status', '=', Torrent::REJECTED)
                 ->get(),
         ]);
@@ -91,17 +81,6 @@ class ModerationController extends Controller
 
         switch ($request->status) {
             case Torrent::APPROVED:
-                // Announce To Shoutbox
-                if ($torrent->anon === 0) {
-                    $this->chatRepository->systemMessage(
-                        \sprintf('User [url=%s/users/', config('app.url')).$torrent->user->username.']'.$torrent->user->username.\sprintf('[/url] has uploaded a new '.$torrent->category->name.'. [url=%s/torrents/', config('app.url')).$id.']'.$torrent->name.'[/url], grab it now!'
-                    );
-                } else {
-                    $this->chatRepository->systemMessage(
-                        \sprintf('An anonymous user has uploaded a new '.$torrent->category->name.'. [url=%s/torrents/', config('app.url')).$id.']'.$torrent->name.'[/url], grab it now!'
-                    );
-                }
-
                 TorrentHelper::approveHelper($id);
 
                 return to_route('staff.moderation.index')

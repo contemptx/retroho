@@ -82,9 +82,9 @@
         </article>
     </header>
     <figure class="topic-listing__figure">
-        @if ($topic->priority || $topic->state === 'close')
+        @if ($topic->pinned || $topic->state === 'close')
             <span class="topic-listing__icon">
-                @if ($topic->priority)
+                @if ($topic->pinned)
                     <abbr title="{{ __('common.sticked') }}">
                         <i class="{{ config('other.font-awesome') }} fa-thumbtack"></i>
                     </abbr>

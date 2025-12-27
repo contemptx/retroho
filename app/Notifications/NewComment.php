@@ -17,9 +17,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\Article;
-use App\Models\Collection;
 use App\Models\Comment;
-use App\Models\Playlist;
 use App\Models\Ticket;
 use App\Models\Torrent;
 use App\Models\TorrentRequest;
@@ -33,7 +31,7 @@ class NewComment extends Notification
     /**
      * NewComment Constructor.
      */
-    public function __construct(public Torrent|TorrentRequest|Ticket|Playlist|Collection|Article $model, public Comment $comment)
+    public function __construct(public Torrent|TorrentRequest|Ticket|Article $model, public Comment $comment)
     {
     }
 
@@ -59,33 +57,23 @@ class NewComment extends Notification
         return match (true) {
             $this->model instanceof Torrent => [
                 'title' => 'New Torrent Comment Received',
-                'body'  => $username.' has left you a comment on Torrent '.$this->model->name,
-                'url'   => '/torrents/'.$this->model->id,
+                'body'  => $username.' has left you a comment on Torrent '.$this->comment->commentable->name,
+                'url'   => '/torrents/'.$this->comment->commentable->id,
             ],
             $this->model instanceof TorrentRequest => [
                 'title' => 'New Request Comment Received',
-                'body'  => $username.' has left you a comment on Torrent Request '.$this->model->name,
-                'url'   => '/requests/'.$this->model->id,
+                'body'  => $username.' has left you a comment on Torrent Request '.$this->comment->commentable->name,
+                'url'   => '/requests/'.$this->comment->commentable->id,
             ],
             $this->model instanceof Ticket => [
                 'title' => 'New Ticket Comment Received',
-                'body'  => $username.' has left you a comment on Ticket '.$this->model->subject,
-                'url'   => '/tickets/'.$this->model->id,
-            ],
-            $this->model instanceof Playlist => [
-                'title' => 'New Playlist Comment Received',
-                'body'  => $username.' has left you a comment on Playlist '.$this->model->name,
-                'url'   => '/playlists/'.$this->model->id,
-            ],
-            $this->model instanceof Collection => [
-                'title' => 'New Collection Comment Received',
-                'body'  => $username.' has left you a comment on Collection '.$this->model->name,
-                'url'   => '/mediahub/collections/'.$this->model->id,
+                'body'  => $username.' has left you a comment on Ticket '.$this->comment->commentable->subject,
+                'url'   => '/tickets/'.$this->comment->commentable->id,
             ],
             $this->model instanceof Article => [
                 'title' => 'New Article Comment Received',
-                'body'  => $username.' has left you a comment on Article '.$this->model->title,
-                'url'   => '/articles/'.$this->model->id,
+                'body'  => $username.' has left you a comment on Article '.$this->comment->commentable->title,
+                'url'   => '/articles/'.$this->comment->commentable->id,
             ],
         };
     }

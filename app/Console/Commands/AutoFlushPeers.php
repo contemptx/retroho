@@ -48,7 +48,7 @@ class AutoFlushPeers extends Command
     final public function handle(): void
     {
         $carbon = new Carbon();
-        $peers = Peer::select(['torrent_id', 'user_id', 'peer_id', 'seeder', 'updated_at'])
+        $peers = Peer::select(['id', 'torrent_id', 'user_id', 'seeder', 'updated_at'])
             ->where('updated_at', '<', $carbon->copy()->subHours(2)->toDateTimeString())
             ->where('active', '=', 1)
             ->get();
@@ -62,39 +62,23 @@ class AutoFlushPeers extends Command
                     'updated_at' => DB::raw('updated_at')
                 ]);
 
-            Peer::query()
-                ->where('torrent_id', '=', $peer->torrent_id)
-                ->where('user_id', '=', $peer->user_id)
-                ->where('peer_id', '=', $peer->peer_id)
-                ->update([
-                    'active'     => false,
-                    'updated_at' => DB::raw('updated_at'),
-                ]);
+            $peer->active = false;
+            $peer->timestamps = false;
+            $peer->save();
         }
 
         // Keep peers that stopped being announced without a `stopped` event
         // in case a user has internet issues and comes back online within the
         // next 2 days
-        if (config('announce.external_tracker.is_enabled')) {
-            Peer::query()
-                ->where('updated_at', '<', $carbon->copy()->subDays(2))
-                ->where('active', '=', 0)
-                ->delete();
-        } else {
-            $peers = Peer::select(['torrent_id', 'user_id', 'peer_id'])
-                ->where('updated_at', '<', $carbon->copy()->subDays(2))
-                ->where('active', '=', 0)
-                ->get();
+        $peers = Peer::select(['id', 'user_id'])
+            ->where('updated_at', '<', $carbon->copy()->subDays(2))
+            ->where('active', '=', 0)
+            ->get();
 
-            foreach ($peers as $peer) {
-                cache()->decrement('user-leeching-count:'.$peer->user_id);
+        foreach ($peers as $peer) {
+            cache()->decrement('user-leeching-count:'.$peer->user_id);
 
-                Peer::query()
-                    ->where('torrent_id', '=', $peer->torrent_id)
-                    ->where('user_id', '=', $peer->user_id)
-                    ->where('peer_id', '=', $peer->peer_id)
-                    ->delete();
-            }
+            $peer->delete();
         }
 
         $this->comment('Automated Flush Ghost Peers Command Complete');

@@ -17,9 +17,6 @@
             {{ __('torrent.search') }}
         </a>
     </li>
-    <li class="nav-tabV2">
-        <a class="nav-tab__link" href="{{ route('top10.index') }}">Top 10</a>
-    </li>
     <li class="nav-tab--active">
         <a class="nav-tab--active__link" href="{{ route('rss.index') }}">
             {{ __('rss.rss') }}
@@ -44,8 +41,6 @@
                         <th>{{ __('common.name') }}</th>
                         <th>{{ __('common.categories') }}</th>
                         <th>{{ __('common.types') }}</th>
-                        <th>{{ __('common.resolutions') }}</th>
-                        <th>{{ __('common.genres') }}</th>
                         <th>{{ __('torrent.discounts') }}</th>
                         <th>{{ __('common.special') }}</th>
                         <th>{{ __('torrent.health') }}</th>
@@ -75,28 +70,6 @@
                             </td>
                             <td>
                                 @if ($rss->object_torrent?->types)
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-check text-green"
-                                    ></i>
-                                @else
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-times text-red"
-                                    ></i>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($rss->object_torrent?->resolutions)
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-check text-green"
-                                    ></i>
-                                @else
-                                    <i
-                                        class="{{ config('other.font-awesome') }} fa-times text-red"
-                                    ></i>
-                                @endif
-                            </td>
-                            <td>
-                                @if ($rss->object_torrent?->genres)
                                     <i
                                         class="{{ config('other.font-awesome') }} fa-check text-green"
                                     ></i>

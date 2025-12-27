@@ -34,8 +34,6 @@ use Illuminate\Database\Eloquent\Model;
 class Like extends Model
 {
     use Auditable;
-
-    /** @use HasFactory<\Database\Factories\LikeFactory> */
     use HasFactory;
 
     /**
@@ -54,7 +52,7 @@ class Like extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -67,7 +65,7 @@ class Like extends Model
     /**
      * Belongs To A Post.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Post, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Post, self>
      */
     public function post(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

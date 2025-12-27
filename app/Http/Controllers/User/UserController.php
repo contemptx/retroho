@@ -17,21 +17,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\BonTransactions;
 use App\Models\Invite;
 use App\Models\Peer;
 use App\Models\User;
 use App\Services\Unit3dAnnounce;
-use Assada\Achievements\Model\AchievementProgress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Intervention\Image\Facades\Image;
 
-/**
- * @see \Tests\Todo\Feature\Http\Controllers\UserControllerTest
- */
 class UserController extends Controller
 {
     /**
@@ -88,18 +83,12 @@ class UserController extends Controller
                 ->with(['torrenttitle', 'warneduser'])
                 ->latest('created_at')
                 ->paginate(10, ['*'], 'deletedWarningsPage'),
-            'boughtUpload' => BonTransactions::where('sender_id', '=', $user->id)->where([['name', 'like', '%Upload%']])->sum('cost'),
-            // 'boughtDownload'        => BonTransactions::where('sender_id', '=', $user->id)->where([['name', 'like', '%Download%']])->sum('cost'),
             'invitedBy' => Invite::where('accepted_by', '=', $user->id)->first(),
             'clients'   => $user->peers()
                 ->select('agent', 'port')
                 ->selectRaw('INET6_NTOA(ip) as ip, MIN(created_at) as created_at, MAX(updated_at) as updated_at, COUNT(*) as num_peers, MAX(connectable) as connectable')
                 ->groupBy(['ip', 'port', 'agent'])
                 ->where('active', '=', true)
-                ->get(),
-            'achievements' => AchievementProgress::with('details')
-                ->where('achiever_id', '=', $user->id)
-                ->whereNotNull('unlocked_at')
                 ->get(),
             'peers' => Peer::query()
                 ->selectRaw('SUM(seeder = 0 AND active = 1) as leeching')

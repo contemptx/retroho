@@ -68,7 +68,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserPrivacy extends Model
 {
-    /** @use HasFactory<\Database\Factories\UserPrivacyFactory> */
     use HasFactory;
 
     /**
@@ -118,7 +117,7 @@ class UserPrivacy extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

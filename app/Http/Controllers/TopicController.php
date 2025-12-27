@@ -16,40 +16,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Achievements\UserMade100Posts;
-use App\Achievements\UserMade200Posts;
-use App\Achievements\UserMade25Posts;
-use App\Achievements\UserMade300Posts;
-use App\Achievements\UserMade400Posts;
-use App\Achievements\UserMade500Posts;
-use App\Achievements\UserMade50Posts;
-use App\Achievements\UserMade600Posts;
-use App\Achievements\UserMade700Posts;
-use App\Achievements\UserMade800Posts;
-use App\Achievements\UserMade900Posts;
-use App\Achievements\UserMadeFirstPost;
 use App\Models\Forum;
 use App\Models\Post;
 use App\Models\Subscription;
 use App\Models\Topic;
 use App\Models\User;
 use App\Notifications\NewTopic;
-use App\Repositories\ChatRepository;
 use Illuminate\Http\Request;
 use Exception;
 
-/**
- * @see \Tests\Todo\Feature\Http\Controllers\TopicControllerTest
- */
 class TopicController extends Controller
 {
-    /**
-     * TopicController Constructor.
-     */
-    public function __construct(private readonly ChatRepository $chatRepository)
-    {
-    }
-
     /**
      * Topics index.
      */
@@ -111,7 +88,7 @@ class TopicController extends Controller
             'first_post_user_id' => $user->id,
             'last_post_user_id'  => $user->id,
             'views'              => 0,
-            'priority'           => 0,
+            'pinned'             => false,
             'forum_id'           => $forum->id,
             'num_post'           => 1,
         ]);
@@ -138,8 +115,8 @@ class TopicController extends Controller
 
         // Post To ShoutBox
         $appUrl = config('app.url');
-        $topicUrl = \sprintf('%s/forums/topics/%s', $appUrl, $topic->id);
-        $profileUrl = \sprintf('%s/users/%s', $appUrl, $user->username);
+        $topicUrl = sprintf('%s/forums/topics/%s', $appUrl, $topic->id);
+        $profileUrl = sprintf('%s/users/%s', $appUrl, $user->username);
 
         if (config('other.staff-forum-notify') && ($forum->id == config('other.staff-forum-id') || $forum->forum_category_id == config('other.staff-forum-id'))) {
             $staffers = User::query()
@@ -151,8 +128,6 @@ class TopicController extends Controller
                 $staffer->notify(new NewTopic('staff', $user, $topic));
             }
         } else {
-            $this->chatRepository->systemMessage(\sprintf('[url=%s]%s[/url] has created a new topic [url=%s]%s[/url]', $profileUrl, $user->username, $topicUrl, $topic->name));
-
             $subscribers = User::query()
                 ->where('id', '!=', $topic->first_post_user_id)
                 ->whereRelation('subscriptions', 'forum_id', '=', $topic->forum_id)
@@ -172,20 +147,6 @@ class TopicController extends Controller
                     $subscriber->notify(new NewTopic('forum', $user, $topic));
                 }
             }
-
-            //Achievements
-            $user->unlock(new UserMadeFirstPost());
-            $user->addProgress(new UserMade25Posts(), 1);
-            $user->addProgress(new UserMade50Posts(), 1);
-            $user->addProgress(new UserMade100Posts(), 1);
-            $user->addProgress(new UserMade200Posts(), 1);
-            $user->addProgress(new UserMade300Posts(), 1);
-            $user->addProgress(new UserMade400Posts(), 1);
-            $user->addProgress(new UserMade500Posts(), 1);
-            $user->addProgress(new UserMade600Posts(), 1);
-            $user->addProgress(new UserMade700Posts(), 1);
-            $user->addProgress(new UserMade800Posts(), 1);
-            $user->addProgress(new UserMade900Posts(), 1);
         }
 
         return to_route('topics.show', ['id' => $topic->id])
@@ -339,10 +300,10 @@ class TopicController extends Controller
     /**
      * Pin The Topic.
      */
-    public function pin(Request $request, int $id): \Illuminate\Http\RedirectResponse
+    public function pin(int $id): \Illuminate\Http\RedirectResponse
     {
         $topic = Topic::findOrFail($id);
-        $topic->priority = $request->integer('priority');
+        $topic->pinned = true;
         $topic->save();
 
         return to_route('topics.show', ['id' => $topic->id])
@@ -355,7 +316,7 @@ class TopicController extends Controller
     public function unpin(int $id): \Illuminate\Http\RedirectResponse
     {
         $topic = Topic::findOrFail($id);
-        $topic->priority = 0;
+        $topic->pinned = false;
         $topic->save();
 
         return to_route('topics.show', ['id' => $topic->id])

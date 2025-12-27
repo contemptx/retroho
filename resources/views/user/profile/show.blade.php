@@ -149,6 +149,7 @@
                     >
                         {{ __('user.registration-date') }}:
                         {{ $user->created_at?->format('Y-m-d') ?? 'N/A' }}
+                        <p>Customer ID: {{ $user->customer_id }}</p>
                     </time>
                     <img
                         src="{{ url($user->image === null ? 'img/profile.png' : 'files/img/' . $user->image) }}"
@@ -170,23 +171,6 @@
                 </article>
             </div>
         </section>
-        @if (auth()->user()->isAllowed($user, 'profile', 'show_profile_achievement'))
-            <section class="panelV2">
-                <h2 class="panel__heading">{{ __('user.recent-achievements') }}</h2>
-                <div class="panel__body">
-                    @forelse ($achievements->take(25) as $achievement)
-                        <img
-                            src="/img/badges/{{ $achievement->details->name }}.png"
-                            title="{{ $achievement->details->name }}"
-                            height="50px"
-                            alt="{{ $achievement->details->name }}"
-                        />
-                    @empty
-                        No recent achievements.
-                    @endforelse
-                </div>
-            </section>
-        @endif
 
         @if (auth()->user()->isAllowed($user, 'profile', 'show_profile_follower'))
             <section class="panelV2">
@@ -802,10 +786,6 @@
                             {{ App\Helpers\StringHelper::formatBytes($history->refunded_download_sum ?? 0, 2) }}
                         </dd>
                     </div>
-                    <div class="key-value__group">
-                        <dt>{{ __('bon.bon') }} {{ __('common.upload') }}</dt>
-                        <dd>{{ App\Helpers\StringHelper::formatBytes($boughtUpload, 2) }}</dd>
-                    </div>
                 </dl>
             </section>
         @endif
@@ -913,6 +893,10 @@
                         <dd>{{ $user->id }}</dd>
                     </div>
                     <div class="key-value__group">
+                        <dt>Customer ID</dt>
+                        <dd>{{ $user->customer_id }}</dd>
+                    </div>
+                    <div class="key-value__group">
                         <dt>{{ __('common.email') }}</dt>
                         <dd>{{ $user->email }}</dd>
                     </div>
@@ -965,7 +949,7 @@
                     <div class="key-value__group">
                         <dt>{{ __('user.can-upload') }}</dt>
                         <dd>
-                            @if ($user->can_upload ?? $user->group->can_upload)
+                            @if ($user->can_upload == 1)
                                 <i
                                     class="{{ config('other.font-awesome') }} fa-check text-green"
                                 ></i>
@@ -993,7 +977,7 @@
                     <div class="key-value__group">
                         <dt>{{ __('user.can-comment') }}</dt>
                         <dd>
-                            @if ($user->can_comment ?? $user->group->can_comment)
+                            @if ($user->can_comment == 1)
                                 <i
                                     class="{{ config('other.font-awesome') }} fa-check text-green"
                                 ></i>
@@ -1007,7 +991,7 @@
                     <div class="key-value__group">
                         <dt>{{ __('user.can-request') }}</dt>
                         <dd>
-                            @if ($user->can_request ?? $user->group->can_request)
+                            @if ($user->can_request == 1)
                                 <i
                                     class="{{ config('other.font-awesome') }} fa-check text-green"
                                 ></i>
@@ -1021,7 +1005,7 @@
                     <div class="key-value__group">
                         <dt>{{ __('user.can-chat') }}</dt>
                         <dd>
-                            @if ($user->can_chat ?? $user->group->can_chat)
+                            @if ($user->can_chat == 1)
                                 <i
                                     class="{{ config('other.font-awesome') }} fa-check text-green"
                                 ></i>
@@ -1035,7 +1019,7 @@
                     <div class="key-value__group">
                         <dt>{{ __('user.can-invite') }}</dt>
                         <dd>
-                            @if (($user->can_invite ?? $user->group->can_invite) && $user->two_factor_confirmed_at !== null)
+                            @if ($user->can_invite == 1 && $user->two_factor_confirmed_at !== null)
                                 <i
                                     class="{{ config('other.font-awesome') }} fa-check text-green"
                                 ></i>
@@ -1053,134 +1037,6 @@
                             </a>
                         </dt>
                         <dd>{{ $user->invites }}</dd>
-                    </div>
-                </dl>
-            </section>
-        @endif
-
-        @if (auth()->user()->isAllowed($user, 'profile', 'show_profile_bon_extra'))
-            <section class="panelV2">
-                <header class="panel__header">
-                    <h2 class="panel__heading">{{ __('user.bon') }}</h2>
-                    @if (auth()->user()->isNot($user))
-                        <div class="panel__actions">
-                            <div class="panel__action" x-data="dialog">
-                                <button
-                                    class="form__button form__button--text"
-                                    x-bind="showDialog"
-                                >
-                                    Gift BON
-                                </button>
-                                <dialog class="dialog" x-bind="dialogElement">
-                                    <h3 class="dialog__heading">
-                                        Gift BON to: {{ $user->username }}
-                                    </h3>
-                                    <form
-                                        class="dialog__form"
-                                        method="POST"
-                                        action="{{ route('users.gifts.store', ['user' => auth()->user()]) }}"
-                                        x-bind="dialogForm"
-                                    >
-                                        @csrf
-                                        <input
-                                            type="hidden"
-                                            name="recipient_username"
-                                            value="{{ $user->username }}"
-                                        />
-                                        <p class="form__group">
-                                            <input
-                                                id="bon"
-                                                class="form__text"
-                                                name="bon"
-                                                type="text"
-                                                pattern="[0-9]*"
-                                                inputmode="numeric"
-                                                placeholder=" "
-                                            />
-                                            <label
-                                                class="form__label form__label--floating"
-                                                for="bon"
-                                            >
-                                                {{ __('bon.amount') }}
-                                            </label>
-                                        </p>
-
-                                        <p class="form__group">
-                                            <textarea
-                                                id="message"
-                                                class="form__textarea"
-                                                name="message"
-                                                placeholder=" "
-                                            ></textarea>
-                                            <label
-                                                class="form__label form__label--floating"
-                                                for="message"
-                                            >
-                                                {{ __('pm.message') }}
-                                            </label>
-                                        </p>
-                                        <p class="form__group">
-                                            <button class="form__button form__button--filled">
-                                                {{ __('bon.gift') }}
-                                            </button>
-                                            <button
-                                                formmethod="dialog"
-                                                formnovalidate
-                                                class="form__button form__button--outlined"
-                                            >
-                                                {{ __('common.cancel') }}
-                                            </button>
-                                        </p>
-                                    </form>
-                                </dialog>
-                            </div>
-                        </div>
-                    @endif
-                </header>
-                <dl class="key-value">
-                    <div class="key-value__group">
-                        <dt>
-                            <a href="{{ route('users.earnings.index', ['user' => $user]) }}">
-                                {{ __('bon.bon') }}
-                            </a>
-                        </dt>
-                        <dd>{{ $user->formatted_seedbonus }}</dd>
-                    </div>
-                    <div class="key-value__group">
-                        <dt>{{ __('user.tips-received') }}</dt>
-                        <dd>
-                            {{ \number_format($user->receivedPostTips()->sum('bon') + $user->receivedTorrentTips()->sum('bon'), 0, null, "\u{202F}") }}
-                        </dd>
-                    </div>
-                    <div class="key-value__group">
-                        <dt>{{ __('user.tips-given') }}</dt>
-                        <dd>
-                            {{ \number_format($user->sentPostTips()->sum('bon') + $user->sentTorrentTips()->sum('bon'), 0, null, "\u{202F}") }}
-                        </dd>
-                    </div>
-                    <div class="key-value__group">
-                        <dt>{{ __('user.gift-received') }}</dt>
-                        <dd>
-                            {{ \number_format($user->receivedGifts()->sum('bon'), 0, null, "\u{202F}") }}
-                        </dd>
-                    </div>
-                    <div class="key-value__group">
-                        <dt>{{ __('user.gift-given') }}</dt>
-                        <dd>
-                            {{ \number_format($user->sentGifts()->sum('bon'), 0, null, "\u{202F}") }}
-                        </dd>
-                    </div>
-                    <div class="key-value__group">
-                        <dt>{{ __('user.bounty-received') }}</dt>
-                        <dd>
-                            {{ \number_format($user->filledRequests()->sum('bounty'), 0, null, "\u{202F}") }}
-                        </dd>
-                    </div>
-                    <div class="key-value__group">
-                        <dt>{{ __('user.bounty-given') }}</dt>
-                        <dd>
-                            {{ \number_format($user->requestBounty()->sum('seedbonus'), 0, null, "\u{202F}") }}
-                        </dd>
                     </div>
                 </dl>
             </section>

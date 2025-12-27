@@ -56,7 +56,7 @@ class ProcessMassPM implements ShouldQueue
 
         PrivateMessage::create([
             'conversation_id' => $conversation->id,
-            'sender_id'       => $this->senderId,
+            'user_id'         => $this->senderId,
             'message'         => $this->message
         ]);
     }

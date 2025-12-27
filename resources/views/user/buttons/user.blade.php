@@ -366,19 +366,6 @@
             {{ __('forum.activity') }}
         </span>
         <ul class="nav-tab-menu__items">
-            @if (auth()->user()->isAllowed($user, 'achievement', 'show_achievement'))
-                <li
-                    class="{{ Route::is('users.achievements.index') ? 'nav-tab--active' : 'nav-tavV2' }}"
-                >
-                    <a
-                        class="{{ Route::is('users.achievements.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                        href="{{ route('users.achievements.index', ['user' => $user]) }}"
-                    >
-                        {{ __('user.achievements') }}
-                    </a>
-                </li>
-            @endif
-
             @if (auth()->user()->isAllowed($user, 'forum', 'show_topic'))
                 <li
                     class="{{ Route::is('users.topics.index') ? 'nav-tab--active' : 'nav-tavV2' }}"
@@ -434,84 +421,14 @@
 
 @if ($isProfileOwner || $isModo)
     <li class="nav-tab-menu">
-        <a
-            class="{{ Route::is('users.earnings.index', 'users.transactions.create', 'users.gifts.index', 'users.gifts.create', 'users.post_tips.index', 'users.torrent_tips.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-            href="{{ route('users.earnings.index', ['user' => $user]) }}"
-        >
-            {{ __('bon.bonus') }} {{ __('bon.points') }}
-        </a>
-        <ul class="nav-tab-menu__items">
-            <li class="{{ Route::is('users.earnings.index') ? 'nav-tab--active' : 'nav-tavV2' }}">
-                <a
-                    class="{{ Route::is('users.earnings.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                    href="{{ route('users.earnings.index', ['user' => $user]) }}"
-                >
-                    {{ __('bon.earnings') }}
-                </a>
-            </li>
-            @if ($isProfileOwner)
-                <li
-                    class="{{ Route::is('users.transactions.create') ? 'nav-tab--active' : 'nav-tavV2' }}"
-                >
-                    <a
-                        class="{{ Route::is('users.transactions.create') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                        href="{{ route('users.transactions.create', ['user' => $user]) }}"
-                    >
-                        {{ __('bon.store') }}
-                    </a>
-                </li>
-            @endif
-
-            <li class="{{ Route::is('users.gifts.index') ? 'nav-tab--active' : 'nav-tavV2' }}">
-                <a
-                    class="{{ Route::is('users.gifts.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                    href="{{ route('users.gifts.index', ['user' => $user]) }}"
-                >
-                    {{ __('bon.gifts') }}
-                </a>
-            </li>
-            <li class="{{ Route::is('users.post_tips.index') ? 'nav-tab--active' : 'nav-tavV2' }}">
-                <a
-                    class="{{ Route::is('users.post_tips.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                    href="{{ route('users.post_tips.index', ['user' => $user]) }}"
-                >
-                    {{ __('forum.post') }} {{ __('bon.tips') }}
-                </a>
-            </li>
-            <li
-                class="{{ Route::is('users.torrent_tips.index') ? 'nav-tab--active' : 'nav-tavV2' }}"
-            >
-                <a
-                    class="{{ Route::is('users.torrent_tips.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                    href="{{ route('users.torrent_tips.index', ['user' => $user]) }}"
-                >
-                    {{ __('torrent.torrent') }} {{ __('bon.tips') }}
-                </a>
-            </li>
-        </ul>
-    </li>
-@endif
-
-@if ($isProfileOwner || $isModo)
-    <li class="nav-tab-menu">
         <span
             tabindex="-1"
-            class="{{ Route::is('users.wishes.*', 'users.seedboxes.*', 'users.invites.*') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
+            class="{{ Route::is('users.seedboxes.*', 'users.invites.*') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
         >
             {{ __('common.other') }}
         </span>
         <ul class="nav-tab-menu__items">
             @if ($isProfileOwner || $isModo)
-                <li
-                    class="{{ Route::is('users.wishes.index') ? 'nav-tab--active' : 'nav-tavV2' }}"
-                >
-                    <a
-                        class="{{ Route::is('users.wishes.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                        href="{{ route('users.wishes.index', ['user' => $user]) }}"
-                    >
-                        {{ __('user.wishlist') }}
-                    </a>
-                </li>
                 <li
                     class="{{ Route::is('users.seedboxes.index') ? 'nav-tab--active' : 'nav-tavV2' }}"
                 >
@@ -530,16 +447,6 @@
                         href="{{ route('users.invites.index', ['user' => $user]) }}"
                     >
                         {{ __('user.invites') }}
-                    </a>
-                </li>
-                <li
-                    class="{{ Route::is('users.invite_tree.index') ? 'nav-tab--active' : 'nav-tavV2' }}"
-                >
-                    <a
-                        class="{{ Route::is('users.invite_tree.index') ? 'nav-tab--active__link' : 'nav-tab__link' }}"
-                        href="{{ route('users.invite_tree.index', ['user' => $user]) }}"
-                    >
-                        {{ __('user.invite-tree') }}
                     </a>
                 </li>
             @endif

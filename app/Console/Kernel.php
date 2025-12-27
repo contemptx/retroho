@@ -26,42 +26,36 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        if (! config('announce.external_tracker.is_enabled')) {
-            $schedule->command('auto:upsert_peers')->everyFiveSeconds();
-            $schedule->command('auto:upsert_histories')->everyFiveSeconds();
-            $schedule->command('auto:upsert_announces')->everyFiveSeconds();
-            $schedule->command('auto:cache_user_leech_counts')->everyThirtyMinutes();
-            $schedule->command('auto:sync_peers')->everyFiveMinutes();
-            $schedule->command('auto:torrent_balance')->hourly();
-        }
-
+        $schedule->command('auto:upsert_peers')->everyFiveSeconds();
+        $schedule->command('auto:upsert_histories')->everyFiveSeconds();
+        $schedule->command('auto:upsert_announces')->everyFiveSeconds();
         $schedule->command('auto:update_user_last_actions')->everyFiveSeconds();
         $schedule->command('auto:delete_stopped_peers')->everyTwoMinutes();
-        $schedule->command('auto:group ')->daily();
-        $schedule->command('auto:nerdstat ')->hourly();
-        $schedule->command('auto:cache_random_media')->hourly();
+        $schedule->command('auto:cache_user_leech_counts')->everyThirtyMinutes();
+        //$schedule->command('auto:group ')->daily();
         $schedule->command('auto:reward_resurrection')->daily();
         $schedule->command('auto:highspeed_tag')->hourly();
         $schedule->command('auto:prewarning')->hourly();
         $schedule->command('auto:warning')->daily();
         $schedule->command('auto:deactivate_warning')->hourly();
         $schedule->command('auto:flush_peers')->hourly();
-        $schedule->command('auto:bon_allocation')->hourly();
         $schedule->command('auto:remove_personal_freeleech')->hourly();
         $schedule->command('auto:remove_featured_torrent')->hourly();
         $schedule->command('auto:recycle_invites')->daily();
-        $schedule->command('auto:recycle_audits')->daily();
+        $schedule->command('auto:recycle_activity_log')->daily();
         $schedule->command('auto:recycle_failed_logins')->daily();
         $schedule->command('auto:disable_inactive_users')->daily();
         $schedule->command('auto:softdelete_disabled_users')->daily();
         $schedule->command('auto:recycle_claimed_torrent_requests')->daily();
         $schedule->command('auto:delete_unparticipated_conversations')->daily();
         $schedule->command('auto:correct_history')->daily();
+        $schedule->command('auto:sync_peers')->everyFiveMinutes();
         $schedule->command('auto:email-blacklist-update')->weekends();
         $schedule->command('auto:reset_user_flushes')->daily();
         $schedule->command('auto:stats_clients')->daily();
         $schedule->command('auto:remove_torrent_buffs')->hourly();
-        $schedule->command('auto:refund_download')->daily();
+        //$schedule->command('auto:refund_download')->daily();
+        $schedule->command('auto:torrent_balance')->hourly();
         $schedule->command('auth:clear-resets')->daily();
         //$schedule->command('auto:ban_disposable_users')->weekends();
         //$schedule->command('backup:clean')->daily();
@@ -74,7 +68,5 @@ class Kernel extends ConsoleKernel
     protected function commands(): void
     {
         $this->load(__DIR__.'/Commands');
-
-        require base_path('routes/console.php');
     }
 }

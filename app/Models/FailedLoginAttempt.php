@@ -31,7 +31,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 class FailedLoginAttempt extends Model
 {
-    /** @use HasFactory<\Database\Factories\FailedLoginAttemptFactory> */
     use HasFactory;
 
     /**
@@ -48,7 +47,7 @@ class FailedLoginAttempt extends Model
     /**
      * Belongs To A User.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, self>
      */
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

@@ -37,7 +37,7 @@ class Wiki extends Model
     /**
      * Belongs To A Category.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<WikiCategory, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<WikiCategory, self>
      */
     public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

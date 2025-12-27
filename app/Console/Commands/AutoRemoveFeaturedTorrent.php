@@ -18,7 +18,6 @@ namespace App\Console\Commands;
 
 use App\Models\FeaturedTorrent;
 use App\Models\Torrent;
-use App\Repositories\ChatRepository;
 use App\Services\Unit3dAnnounce;
 use Exception;
 use Illuminate\Console\Command;
@@ -27,14 +26,6 @@ use Throwable;
 
 class AutoRemoveFeaturedTorrent extends Command
 {
-    /**
-     * AutoRemoveFeaturedTorrent Constructor.
-     */
-    public function __construct(private readonly ChatRepository $chatRepository)
-    {
-        parent::__construct();
-    }
-
     /**
      * The name and signature of the console command.
      *
@@ -66,13 +57,6 @@ class AutoRemoveFeaturedTorrent extends Command
             if (isset($torrent)) {
                 $torrent->featured = false;
                 $torrent->save();
-
-                // Auto Announce Featured Expired
-                $appurl = config('app.url');
-
-                $this->chatRepository->systemMessage(
-                    \sprintf('Ladies and Gents, [url=%s/torrents/%s]%s[/url] is no longer featured.', $appurl, $torrent->id, $torrent->name)
-                );
 
                 Unit3dAnnounce::removeFeaturedTorrent($torrent->id);
             }

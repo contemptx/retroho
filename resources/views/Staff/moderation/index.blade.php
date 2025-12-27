@@ -28,7 +28,6 @@
                         <th>{{ __('common.name') }}</th>
                         <th>{{ __('common.category') }}</th>
                         <th>{{ __('common.type') }}</th>
-                        <th>{{ __('common.resolution') }}</th>
                         <th>{{ __('torrent.size') }}</th>
                         <th>{{ __('torrent.uploader') }}</th>
                         <th>{{ __('common.action') }}</th>
@@ -57,7 +56,6 @@
                                 ></i>
                             </td>
                             <td>{{ $torrent->type->name }}</td>
-                            <td>{{ $torrent->resolution->name ?? 'No Res' }}</td>
                             <td>{{ $torrent->getSize() }}</td>
                             <td>
                                 <x-user_tag :anon="false" :user="$torrent->user" />
@@ -112,7 +110,6 @@
                         <th>{{ __('common.name') }}</th>
                         <th>{{ __('common.category') }}</th>
                         <th>{{ __('common.type') }}</th>
-                        <th>{{ __('common.resolution') }}</th>
                         <th>{{ __('torrent.size') }}</th>
                         <th>{{ __('torrent.uploader') }}</th>
                         <th>{{ __('common.staff') }}</th>
@@ -142,7 +139,6 @@
                                 ></i>
                             </td>
                             <td>{{ $torrent->type->name }}</td>
-                            <td>{{ $torrent->resolution->name ?? 'No Res' }}</td>
                             <td>{{ $torrent->getSize() }}</td>
                             <td>
                                 <x-user_tag :anon="false" :user="$torrent->user" />
@@ -210,7 +206,6 @@
                         <th>{{ __('common.name') }}</th>
                         <th>{{ __('common.category') }}</th>
                         <th>{{ __('common.type') }}</th>
-                        <th>{{ __('common.resolution') }}</th>
                         <th>{{ __('torrent.size') }}</th>
                         <th>{{ __('torrent.uploader') }}</th>
                         <th>{{ __('common.staff') }}</th>
@@ -240,7 +235,6 @@
                                 ></i>
                             </td>
                             <td>{{ $torrent->type->name }}</td>
-                            <td>{{ $torrent->resolution->name ?? 'No Res' }}</td>
                             <td>{{ $torrent->getSize() }}</td>
                             <td>
                                 <x-user_tag :anon="false" :user="$torrent->user" />

@@ -17,19 +17,11 @@ declare(strict_types=1);
 namespace App\Traits;
 
 use App\Models\Bookmark;
-use App\Models\Category;
-use App\Models\Keyword;
-use App\Models\Movie;
-use App\Models\PlaylistTorrent;
 use App\Models\Torrent;
 use App\Models\TorrentRequest;
-use App\Models\TorrentTrump;
-use App\Models\Tv;
 use App\Models\User;
-use App\Models\Wish;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 trait TorrentFilter
 {
@@ -58,18 +50,6 @@ trait TorrentFilter
     }
 
     /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfMediainfo(Builder $query, string $mediainfo, bool $isRegex = false): void
-    {
-        $query->when(
-            $isRegex,
-            fn ($query) => $query->where('mediainfo', 'REGEXP', substr($mediainfo, 1, -1)),
-            fn ($query) => $query->where('mediainfo', 'LIKE', '%'.$mediainfo.'%')
-        );
-    }
-
-    /**
      * @param Builder<Torrent|TorrentRequest> $query
      */
     public function scopeOfUploader(Builder $query, string $username, User $authenticatedUser = null): void
@@ -86,37 +66,6 @@ trait TorrentFilter
                     fn ($query) => $query->where(fn ($query) => $query->where('anon', '=', false)->orWhere('user_id', '=', $authenticatedUser->id))
                 )
             );
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     * @param array<string>    $keywords
-     */
-    public function scopeOfKeyword(Builder $query, array $keywords): void
-    {
-        $query->whereIn('id', Keyword::select('torrent_id')->whereIn('name', $keywords));
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeReleasedAfterOrIn(Builder $query, int $year): void
-    {
-        $query->where(function ($query) use ($year): void {
-            $query->whereIn('tmdb', Movie::select('id')->whereYear('release_date', '>=', $year))
-                ->orWhereIn('tmdb', Tv::select('id')->whereYear('first_air_date', '>=', $year));
-        });
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeReleasedBeforeOrIn(Builder $query, int $year): void
-    {
-        $query->where(function ($query) use ($year): void {
-            $query->whereIn('tmdb', Movie::select('id')->whereYear('release_date', '<=', $year))
-                ->orWhereIn('tmdb', Tv::select('id')->whereYear('first_air_date', '<=', $year));
-        });
     }
 
     /**
@@ -154,152 +103,6 @@ trait TorrentFilter
     }
 
     /**
-     * @param Builder<Torrent|TorrentRequest> $query
-     * @param array<int>                      $resolutions
-     */
-    public function scopeOfResolution(Builder $query, array $resolutions): void
-    {
-        $query->whereIntegerInRaw('resolution_id', $resolutions);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     * @param array<int>       $genres
-     */
-    public function scopeOfGenre(Builder $query, array $genres): void
-    {
-        $query
-            ->where(
-                fn ($query) => $query
-                    ->where(
-                        fn ($query) => $query
-                            ->whereIn('category_id', Category::select('id')->where('movie_meta', '=', 1))
-                            ->whereIn('tmdb', DB::table('genre_movie')->select('movie_id')->whereIn('genre_id', $genres))
-                    )
-                    ->orWhere(
-                        fn ($query) => $query
-                            ->whereIn('category_id', Category::select('id')->where('tv_meta', '=', 1))
-                            ->whereIn('tmdb', DB::table('genre_tv')->select('tv_id')->whereIn('genre_id', $genres))
-                    )
-            );
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     * @param array<int>       $regions
-     */
-    public function scopeOfRegion(Builder $query, array $regions): void
-    {
-        $query->whereIntegerInRaw('region_id', $regions);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     * @param array<int>       $distributors
-     */
-    public function scopeOfDistributor(Builder $query, array $distributors): void
-    {
-        $query->whereIntegerInRaw('distributor_id', $distributors);
-    }
-
-    /**
-     * @param Builder<Torrent|TorrentRequest> $query
-     */
-    public function scopeOfTmdb(Builder $query, int $tvdbId): void
-    {
-        $query->where('tmdb', '=', $tvdbId);
-    }
-
-    /**
-     * @param Builder<Torrent|TorrentRequest> $query
-     */
-    public function scopeOfImdb(Builder $query, int $tvdbId): void
-    {
-        $query->where('imdb', '=', $tvdbId);
-    }
-
-    /**
-     * @param Builder<Torrent|TorrentRequest> $query
-     */
-    public function scopeOfTvdb(Builder $query, int $tvdbId): void
-    {
-        $query->where('tvdb', '=', $tvdbId);
-    }
-
-    /**
-     * @param Builder<Torrent|TorrentRequest> $query
-     */
-    public function scopeOfMal(Builder $query, int $malId): void
-    {
-        $query->where('mal', '=', $malId);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfPlaylist(Builder $query, int $playlistId, ?User $authenticatedUser = null): void
-    {
-        $authenticatedUser ??= auth()->user();
-
-        $query->whereIn(
-            'id',
-            PlaylistTorrent::select('torrent_id')
-                ->where('playlist_id', '=', $playlistId)
-                ->when(
-                    $authenticatedUser === null,
-                    fn ($query) => $query->whereRelation('playlist', 'is_private', '=', false),
-                    fn ($query) => $query->when(
-                        ! $authenticatedUser->group->is_modo,
-                        fn ($query) => $query->where(fn ($query) => $query
-                            ->whereRelation('playlist', 'is_private', '=', false)
-                            ->orWhereRelation('playlist', 'user_id', '=', $authenticatedUser->id))
-                    )
-                )
-        );
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfCollection(Builder $query, int $collectionId): void
-    {
-        $query
-            ->whereIn('category_id', Category::select('id')->where('movie_meta', '=', 1))
-            ->whereIn('tmdb', DB::table('collection_movie')->select('movie_id')->where('collection_id', '=', $collectionId));
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfCompany(Builder $query, int $companyId): void
-    {
-        $query
-            ->where(
-                fn ($query) => $query
-                    ->where(
-                        fn ($query) => $query
-                            ->whereIn('category_id', Category::select('id')->where('movie_meta', '=', 1))
-                            ->whereIn('tmdb', DB::table('company_movie')->select('movie_id')->where('company_id', '=', $companyId))
-                    )
-                    ->orWhere(
-                        fn ($query) => $query
-                            ->whereIn('category_id', Category::select('id')->where('tv_meta', '=', 1))
-                            ->whereIn('tmdb', DB::table('company_tv')->select('tv_id')->where('company_id', '=', $companyId))
-                    )
-            );
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfNetwork(Builder $query, int $networkId): void
-    {
-        $query
-            ->whereIn('category_id', Category::select('id')->where('tv_meta', '=', 1))
-            ->whereIn('tmdb', DB::table('network_tv')->select('tv_id')->where('network_id', '=', $networkId));
-    }
-
-    /**
      * @param Builder<Torrent> $query
      * @param int|array<int>   $free
      */
@@ -331,30 +134,6 @@ trait TorrentFilter
     /**
      * @param Builder<Torrent> $query
      */
-    public function scopeRefundable(Builder $query): void
-    {
-        $query->where('refundable', '=', 1);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeStreamOptimized(Builder $query): void
-    {
-        $query->where('stream', '=', 1);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeSd(Builder $query): void
-    {
-        $query->where('sd', '=', 1);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
     public function scopeHighSpeed(Builder $query): void
     {
         $query->where('highspeed', '=', 1);
@@ -366,38 +145,6 @@ trait TorrentFilter
     public function scopeBookmarkedBy(Builder $query, User $user): void
     {
         $query->whereIn('id', Bookmark::select('torrent_id')->where('user_id', '=', $user->id));
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeWishedBy(Builder $query, User $user): void
-    {
-        $query->whereIn('tmdb', Wish::select('tmdb')->where('user_id', '=', $user->id));
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeInternal(Builder $query): void
-    {
-        $query->where('internal', '=', 1);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopePersonalRelease(Builder $query): void
-    {
-        $query->where('personal_release', '=', 1);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeTrumpable(Builder $query): void
-    {
-        $query->whereIn('id', TorrentTrump::select('torrent_id'));
     }
 
     /**
@@ -516,75 +263,6 @@ trait TorrentFilter
                 'files',
                 fn ($query) => $query
                     ->where('name', $filename)
-            );
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfSeason(Builder $query, int $seasonNumber): void
-    {
-        $query->where('season_number', '=', $seasonNumber);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfEpisode(Builder $query, int $episodeNumber): void
-    {
-        $query->where('episode_number', '=', $episodeNumber);
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     * @param array<string>    $languages
-     */
-    public function scopeOfPrimaryLanguage(Builder $query, array $languages): void
-    {
-        $query
-            ->where(
-                fn ($query) => $query
-                    ->where(
-                        fn ($query) => $query
-                            ->whereIn('category_id', Category::select('id')->where('movie_meta', '=', 1))
-                            ->whereIn('tmdb', Movie::select('id')->whereIn('original_language', $languages))
-                    )
-                    ->orWhere(
-                        fn ($query) => $query
-                            ->whereIn('category_id', Category::select('id')->where('tv_meta', '=', 1))
-                            ->whereIn('tmdb', Tv::select('id')->whereIn('original_language', $languages))
-                    )
-            );
-    }
-
-    /**
-     * @param Builder<Torrent> $query
-     */
-    public function scopeOfAdult(Builder $query, ?bool $isAdult = null): void
-    {
-        // Currently, only movies have an `adult` column.
-        $query
-            ->when(
-                $isAdult === true,
-                fn ($query) => $query
-                    ->whereIn('category_id', Category::select('id')->where('movie_meta', '=', 1))
-                    ->whereIn('tmdb', Movie::select('id')->where('adult', '=', true)),
-            )
-            ->when(
-                $isAdult === false,
-                fn ($query) => $query
-                    ->where(
-                        fn ($query) => $query
-                            ->where(
-                                fn ($query) => $query
-                                    ->whereIn('category_id', Category::select('id')->where('movie_meta', '=', 1))
-                                    ->whereIn('tmdb', Movie::select('id')->where('adult', '=', false))
-                            )
-                            ->orWhere(
-                                fn ($query) => $query
-                                    ->whereNotIn('category_id', Category::select('id')->where('movie_meta', '=', 1))
-                            )
-                    )
             );
     }
 }
