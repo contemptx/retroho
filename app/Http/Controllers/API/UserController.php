@@ -65,18 +65,28 @@ class UserController extends BaseController
                 'unique:users',
                 Rule::when(config('email-blacklist.enabled') === true, fn () => new EmailBlacklist()),
             ],
+            'username'    => [
+                'nullable',
+                'string',
+                'alpha_dash',
+                'between:3,25',
+                'unique:users',
+            ],
         ]);
 
-        // Parse username from email (everything before the @)
-        $username = Str::before($request->email, '@');
+        // Use provided username or parse from email (everything before the @)
+        $username = $request->username ?? Str::before($request->email, '@');
 
-        // Make sure the username is unique, append random digits if needed
-        $originalUsername = $username;
-        $counter = 1;
+        // If username was derived from email, make sure it's unique, append digits if needed
+        // If username was provided, validation already ensures uniqueness
+        if (!$request->has('username')) {
+            $originalUsername = $username;
+            $counter = 1;
 
-        while (User::where('username', $username)->exists()) {
-            $username = $originalUsername.$counter;
-            $counter++;
+            while (User::where('username', $username)->exists()) {
+                $username = $originalUsername.$counter;
+                $counter++;
+            }
         }
 
         // Generate a secure random password that meets the password requirements
@@ -119,46 +129,79 @@ class UserController extends BaseController
     }
 
     /**
-     * Attach torrents to a user by customer_id.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    // final public function attachTorrents(Request $request): \Illuminate\Http\JsonResponse
-    // {
-    //     // Check if an authenticated user has owner permissions
-    //     if (!auth()->user()->group->is_owner) {
-    //         return $this->sendError('Unauthorized', 'You do not have permission to attach torrents to users', 403);
-    //     }
+ * Attach torrents to a user by customer_id, username, or email.
+ *
+ * @param Request $request
+ * @return \Illuminate\Http\JsonResponse
+ */
+final public function attachTorrents(Request $request): \Illuminate\Http\JsonResponse
+{
+    // Check if an authenticated user has owner permissions
+    if (!auth()->user()->group->is_owner) {
+        return $this->sendError('Unauthorized', 'You do not have permission to attach torrents to users', 403);
+    }
 
-    //     // Validate the request
-    //     $request->validate([
-    //         'customer_id' => 'required|integer|exists:users,customer_id',
-    //         'torrent_sku' => 'required|array|min:1',
-    //         'torrent_sku.*' => 'integer|exists:torrents,id',
-    //     ]);
+    // Validate the request - require exactly one identifier
+    $request->validate([
+        'customer_id' => 'nullable|integer|exists:users,customer_id',
+        'username'    => 'nullable|string|exists:users,username',
+        'email'       => 'nullable|string|email|exists:users,email',
+        'torrent_sku' => 'required|array|min:1',
+        'torrent_sku.*' => 'integer|exists:torrents,id',
+    ], [
+        'customer_id.exists' => 'No user found with the provided customer_id.',
+        'username.exists'    => 'No user found with the provided username.',
+        'email.exists'      => 'No user found with the provided email.',
+    ]);
 
-    //     // Find the user by customer_id
-    //     $user = User::where('customer_id', $request->customer_id)->firstOrFail();
+    // Ensure exactly one identifier is provided
+    $identifiers = array_filter([
+        'customer_id' => $request->customer_id,
+        'username'    => $request->username,
+        'email'       => $request->email,
+    ]);
 
-    //     // Since validation already ensures all torrent IDs exist, use them directly
-    //     // Ensure they're integers for consistency
-    //     $torrentIds = array_map('intval', $request->torrent_sku);
-        
-    //     // Attach torrents to user (sync without detaching existing)
-    //     $user->attachedTorrents()->syncWithoutDetaching($torrentIds);
+    if (count($identifiers) !== 1) {
+        return $this->sendError(
+            'Validation Error',
+            'You must provide exactly one of: customer_id, username, or email',
+            422
+        );
+    }
 
-    //     // Get the updated list of attached torrents
-    //     $attachedTorrents = $user->attachedTorrents()->pluck('torrents.id')->toArray();
+    // Find the user by the provided identifier
+    $user = null;
+    if ($request->has('customer_id') && $request->customer_id !== null) {
+        $user = User::where('customer_id', $request->customer_id)->firstOrFail();
+    } elseif ($request->has('username') && $request->username !== null) {
+        $user = User::where('username', $request->username)->firstOrFail();
+    } elseif ($request->has('email') && $request->email !== null) {
+        $user = User::where('email', $request->email)->firstOrFail();
+    }
 
-    //     return $this->sendResponse([
-    //         'customer_id'       => $user->customer_id,
-    //         'user_id'           => $user->id,
-    //         'username'          => $user->username,
-    //         'attached_torrents' => $attachedTorrents,
-    //         'newly_attached'    => $torrentIds,
-    //     ], 'Torrents attached successfully');
-    // }
+    if (!$user) {
+        return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
+    }
+
+    // Since validation already ensures all torrent IDs exist, use them directly
+    // Ensure they're integers for consistency
+    $torrentIds = array_map('intval', $request->torrent_sku);
+    
+    // Attach torrents to user (sync without detaching existing)
+    $user->attachedTorrents()->syncWithoutDetaching($torrentIds);
+
+    // Get the updated list of attached torrents
+    $attachedTorrents = $user->attachedTorrents()->pluck('torrents.id')->toArray();
+
+    return $this->sendResponse([
+        'customer_id'       => $user->customer_id,
+        'user_id'           => $user->id,
+        'username'          => $user->username,
+        'email'             => $user->email,
+        'attached_torrents' => $attachedTorrents,
+        'newly_attached'    => $torrentIds,
+    ], 'Torrents attached successfully');
+}
 
     /**
      * Generate a secure password that meets the requirements:

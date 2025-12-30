@@ -32,10 +32,20 @@ class Authenticate extends Middleware
      */
     public function handle($request, Closure $next, ...$guards)
     {
-        // Extract Bearer token from Authorization header for API requests
-        // if ($request->is('api/*') && $request->bearerToken()) {
-        //     $request->query->set('api_token', $request->bearerToken());
-        // }
+        // For API requests, ensure they're treated as JSON to prevent redirects
+        if ($request->is('api/*')) {
+            $request->headers->set('Accept', 'application/json');
+            
+            // Extract Bearer token from Authorization header for API requests
+            // The token guard looks for api_token in input or headers
+            if ($request->bearerToken()) {
+                $token = $request->bearerToken();
+                // Merge into request input so token guard can find it
+                $request->merge(['api_token' => $token]);
+                // Also set as header as fallback
+                $request->headers->set('api_token', $token);
+            }
+        }
 
         $this->authenticate($request, $guards);
 

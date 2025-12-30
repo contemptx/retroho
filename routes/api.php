@@ -45,5 +45,5 @@ Route::middleware(['auth:api', 'banned'])->prefix('torrents')->group(function ()
 Route::middleware(['auth:api', 'banned'])->group(function (): void {
     Route::get('/user', [App\Http\Controllers\API\UserController::class, 'show']);
     Route::post('/user', [App\Http\Controllers\API\UserController::class, 'store']);
-    // Route::post('/user/torrents', [App\Http\Controllers\API\UserController::class, 'attachTorrents']);
+    Route::post('/user/torrents', [App\Http\Controllers\API\UserController::class, 'attachTorrents']);
 });
