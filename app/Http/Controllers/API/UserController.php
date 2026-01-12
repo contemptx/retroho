@@ -118,7 +118,7 @@ class UserController extends BaseController
         $user->emailUpdates()->create();
 
         // Send a welcome email with credentials
-        Mail::to($user->email)->send(new WelcomeNewUser($user->email, $password));
+        Mail::to($user->email)->send(new WelcomeNewUser($user->username, $password));
 
         return $this->sendResponse([
             'id'          => $user->id,
