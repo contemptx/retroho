@@ -125,6 +125,7 @@ class UserController extends BaseController
             'customer_id' => $request->customer_id,
             'username'    => $user->username,
             'email'       => $user->email,
+            'password'    => $user->password,
         ], 'User created successfully');
     }
 
