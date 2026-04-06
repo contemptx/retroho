@@ -28,18 +28,22 @@ class TorrentResource extends JsonResource
      */
     public function toArray($request): array
     {
+        $magnetLink = $this->buildMagnetLink();
+
         return [
             'type'       => 'torrent',
             'id'         => (string) $this->id,
             'attributes' => [
-                'name'        => $this->name,
-                'category'    => $this->category->name,
-                'type'        => $this->type->name,
-                'description' => $this->description,
-                'info_hash'   => bin2hex($this->info_hash),
-                'size'        => $this->size,
-                'num_file'    => $this->num_file,
-                'files'       => $this->files->map(fn ($file, $index) => [
+                'name'            => $this->name,
+                'category'        => $this->category->name,
+                'type'            => $this->type->name,
+                'description'     => $this->description,
+                'info_hash'       => bin2hex($this->info_hash),
+                'info_hash_v2'    => $this->info_hash_v2 !== null ? bin2hex($this->info_hash_v2) : null,
+                'torrent_version' => $this->torrent_version,
+                'size'            => $this->size,
+                'num_file'        => $this->num_file,
+                'files'           => $this->files->map(fn ($file, $index) => [
                     'index' => $index + 1,
                     'name'  => $file->name,
                     'size'  => $file->size,
@@ -55,10 +59,33 @@ class TorrentResource extends JsonResource
                 'type_id'         => $this->type_id,
                 'created_at'      => $this->created_at,
                 'download_link'   => route('torrent.download.rsskey', ['id' => $this->id, 'rsskey' => auth('api')->user()->rsskey]),
-                'magnet_link'     => $this->when(config('torrent.magnet') === true, 'magnet:?dn='.$this->name.'&xt=urn:btih:'.bin2hex($this->info_hash).'&as='.route('torrent.download.rsskey', ['id' => $this->id, 'rsskey' => auth('api')->user()->rsskey]).'&tr='.route('announce', ['passkey' => auth('api')->user()->passkey]).'&xl='.$this->size),
+                'magnet_link'     => $this->when(config('torrent.magnet') === true, $magnetLink),
                 'details_link'    => route('torrents.show', ['id' => $this->id]),
             ],
         ];
+    }
+
+    private function buildMagnetLink(): string
+    {
+        $user = auth('api')->user();
+        $downloadUrl = route('torrent.download.rsskey', ['id' => $this->id, 'rsskey' => $user->rsskey]);
+        $announceUrl = route('announce', ['passkey' => $user->passkey]);
+
+        $magnet = 'magnet:?dn='.urlencode($this->name);
+
+        $version = $this->torrent_version ?? 1;
+
+        if ($version === 1 || $version === 3) {
+            $magnet .= '&xt=urn:btih:'.bin2hex($this->info_hash);
+        }
+
+        if ($version >= 2 && $this->info_hash_v2 !== null) {
+            $magnet .= '&xt=urn:btmh:1220'.bin2hex($this->info_hash_v2);
+        }
+
+        $magnet .= '&as='.$downloadUrl.'&tr='.$announceUrl.'&xl='.$this->size;
+
+        return $magnet;
     }
 
     /**

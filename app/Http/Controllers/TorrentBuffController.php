@@ -77,7 +77,7 @@ class TorrentBuffController extends Controller
         $torrent->free = $request->freeleech;
         $torrent->save();
 
-        cache()->forget('announce-torrents:by-infohash:'.$torrent->info_hash);
+        $torrent->forgetAnnounceCache();
 
         Unit3dAnnounce::addTorrent($torrent);
 
@@ -165,7 +165,7 @@ class TorrentBuffController extends Controller
 
         $torrent->save();
 
-        cache()->forget('announce-torrents:by-infohash:'.$torrent->info_hash);
+        $torrent->forgetAnnounceCache();
 
         Unit3dAnnounce::addTorrent($torrent);
 

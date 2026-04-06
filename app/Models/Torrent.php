@@ -35,6 +35,8 @@ use voku\helper\AntiXSS;
  * App\Models\Torrent.
  *
  * @property string                          $info_hash
+ * @property string|null                     $info_hash_v2
+ * @property int                             $torrent_version
  * @property int                             $id
  * @property string                          $name
  * @property string                          $description
@@ -109,6 +111,20 @@ class Torrent extends Model
     final public const APPROVED = 1;
     final public const REJECTED = 2;
     final public const POSTPONED = 3;
+
+    final public const V1 = 1;
+    final public const V2 = 2;
+    final public const HYBRID = 3;
+
+    public function forgetAnnounceCache(): void
+    {
+        cache()->forget('announce-torrents:by-infohash:'.$this->info_hash);
+
+        if ($this->info_hash_v2 !== null) {
+            $truncatedV2 = substr($this->info_hash_v2, 0, 20);
+            cache()->forget('announce-torrents:by-infohash:'.$truncatedV2);
+        }
+    }
 
     protected static function booted(): void
     {

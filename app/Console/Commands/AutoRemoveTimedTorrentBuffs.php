@@ -53,7 +53,7 @@ class AutoRemoveTimedTorrentBuffs extends Command
             $torrent->fl_until = null;
             $torrent->save();
 
-            cache()->forget('announce-torrents:by-infohash:'.$torrent->info_hash);
+            $torrent->forgetAnnounceCache();
             Unit3dAnnounce::addTorrent($torrent);
         }
 
@@ -64,7 +64,7 @@ class AutoRemoveTimedTorrentBuffs extends Command
             $torrent->du_until = null;
             $torrent->save();
 
-            cache()->forget('announce-torrents:by-infohash:'.$torrent->info_hash);
+            $torrent->forgetAnnounceCache();
             Unit3dAnnounce::addTorrent($torrent);
         }
 
