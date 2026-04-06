@@ -89,9 +89,22 @@
                 </a>
             @endif
             @if (config('torrent.magnet'))
+                @php
+                    $magnetUrl = 'magnet:?dn=' . urlencode($torrent->name);
+                    $tVersion = $torrent->torrent_version ?? 1;
+                    if ($tVersion === 1 || $tVersion === 3) {
+                        $magnetUrl .= '&xt=urn:btih:' . bin2hex($torrent->info_hash);
+                    }
+                    if ($tVersion >= 2 && $torrent->info_hash_v2 !== null) {
+                        $magnetUrl .= '&xt=urn:btmh:1220' . bin2hex($torrent->info_hash_v2);
+                    }
+                    $magnetUrl .= '&as=' . route('torrent.download.rsskey', ['id' => $torrent->id, 'rsskey' => auth()->user()->rsskey]);
+                    $magnetUrl .= '&tr=' . route('announce', ['passkey' => auth()->user()->passkey]);
+                    $magnetUrl .= '&xl=' . $torrent->size;
+                @endphp
                 <a
                     class="torrent-search--list__maget form__contained-icon-button form__contained-icon-button--filled"
-                    href="magnet:?dn={{ $torrent->name }}&xt=urn:btih:{{ bin2hex($torrent->info_hash) }}&as={{ route('torrent.download.rsskey', ['id' => $torrent->id, 'rsskey' => auth()->user()->rsskey]) }}&tr={{ route('announce', ['passkey' => auth()->user()->passkey]) }}&xl={{ $torrent->size }}"
+                    href="{{ $magnetUrl }}"
                     download
                     title="{{ __('common.magnet') }}"
                 >

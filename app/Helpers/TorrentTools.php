@@ -28,22 +28,36 @@ class TorrentTools
      */
     public static function normalizeTorrent(UploadedFile $torrentFile)
     {
-        $result = Bencode::bdecode_file($torrentFile->getRealPath());
+        $raw = Bencode::bdecode_file($torrentFile->getRealPath());
+        $version = Bencode::get_torrent_version($raw);
 
-        // Whitelisted keys
-        $result = array_intersect_key($result, [
+        $topLevelWhitelist = [
             'comment'    => '',
             'created by' => '',
             'encoding'   => '',
             'info'       => '',
-        ]);
-        $result['info'] = array_intersect_key($result['info'], [
+        ];
+
+        if ($version >= 2) {
+            $topLevelWhitelist['piece layers'] = '';
+        }
+
+        $result = array_intersect_key($raw, $topLevelWhitelist);
+
+        $infoWhitelist = [
             'files'        => '',
             'length'       => '',
             'name'         => '',
             'piece length' => '',
             'pieces'       => '',
-        ]);
+        ];
+
+        if ($version >= 2) {
+            $infoWhitelist['file tree'] = '';
+            $infoWhitelist['meta version'] = '';
+        }
+
+        $result['info'] = array_intersect_key($result['info'], $infoWhitelist);
 
         $result['info']['source'] = config('torrent.source');
         $result['info']['private'] = 1;
@@ -79,7 +93,11 @@ class TorrentTools
     {
         $files = [];
 
-        if (\array_key_exists('files', $decodedTorrent['info']) && (is_countable($decodedTorrent['info']['files']) ? \count($decodedTorrent['info']['files']) : 0)) {
+        $version = Bencode::get_torrent_version($decodedTorrent);
+
+        if ($version >= 2 && isset($decodedTorrent['info']['file tree'])) {
+            self::collectFilesFromTree($decodedTorrent['info']['file tree'], '', $files);
+        } elseif (\array_key_exists('files', $decodedTorrent['info']) && (is_countable($decodedTorrent['info']['files']) ? \count($decodedTorrent['info']['files']) : 0)) {
             foreach ($decodedTorrent['info']['files'] as $k => $file) {
                 $dir = '';
                 $count = is_countable($file['path']) ? \count($file['path']) : 0;
@@ -104,6 +122,20 @@ class TorrentTools
         return $files;
     }
 
+    private static function collectFilesFromTree(array $tree, string $prefix, array &$files): void
+    {
+        foreach ($tree as $name => $node) {
+            if ($name === '' && isset($node['length'])) {
+                $files[] = [
+                    'name' => rtrim($prefix, '/'),
+                    'size' => $node['length'],
+                ];
+            } elseif (\is_array($node)) {
+                self::collectFilesFromTree($node, $prefix.$name.'/', $files);
+            }
+        }
+    }
+
     /**
      * Returns file and folder names from the torrent.
      *
@@ -114,7 +146,11 @@ class TorrentTools
     {
         $filenames = [];
 
-        if (\array_key_exists('files', $decodedTorrent['info']) && (is_countable($decodedTorrent['info']['files']) ? \count($decodedTorrent['info']['files']) : 0)) {
+        $version = Bencode::get_torrent_version($decodedTorrent);
+
+        if ($version >= 2 && isset($decodedTorrent['info']['file tree'])) {
+            self::collectFilenamesFromTree($decodedTorrent['info']['file tree'], $filenames);
+        } elseif (\array_key_exists('files', $decodedTorrent['info']) && (is_countable($decodedTorrent['info']['files']) ? \count($decodedTorrent['info']['files']) : 0)) {
             foreach ($decodedTorrent['info']['files'] as $file) {
                 $count = is_countable($file['path']) ? \count($file['path']) : 0;
 
@@ -129,6 +165,23 @@ class TorrentTools
         }
 
         return $filenames;
+    }
+
+    private static function collectFilenamesFromTree(array $tree, array &$filenames): void
+    {
+        foreach ($tree as $name => $node) {
+            if ($name === '') {
+                continue;
+            }
+
+            if (!\in_array($name, $filenames)) {
+                $filenames[] = $name;
+            }
+
+            if (\is_array($node) && !isset($node['length'])) {
+                self::collectFilenamesFromTree($node, $filenames);
+            }
+        }
     }
 
     /**

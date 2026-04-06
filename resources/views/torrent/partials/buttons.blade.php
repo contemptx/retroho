@@ -20,8 +20,21 @@
                 </a>
             @endif
         @else
+            @php
+                $magnetUrl = 'magnet:?dn=' . urlencode($torrent->name);
+                $tVersion = $torrent->torrent_version ?? 1;
+                if ($tVersion === 1 || $tVersion === 3) {
+                    $magnetUrl .= '&xt=urn:btih:' . bin2hex($torrent->info_hash);
+                }
+                if ($tVersion >= 2 && $torrent->info_hash_v2 !== null) {
+                    $magnetUrl .= '&xt=urn:btmh:1220' . bin2hex($torrent->info_hash_v2);
+                }
+                $magnetUrl .= '&as=' . route('torrent.download.rsskey', ['id' => $torrent->id, 'rsskey' => $user->rsskey]);
+                $magnetUrl .= '&tr=' . route('announce', ['passkey' => $user->passkey]);
+                $magnetUrl .= '&xl=' . $torrent->size;
+            @endphp
             <a
-                href="magnet:?dn={{ $torrent->name }}&xt=urn:btih:{{ bin2hex($torrent->info_hash) }}&as={{ route('torrent.download.rsskey', ['id' => $torrent->id, 'rsskey' => $user->rsskey]) }}&tr={{ route('announce', ['passkey' => $user->passkey]) }}&xl={{ $torrent->size }}"
+                href="{{ $magnetUrl }}"
                 class="form__button form__button--filled form__button--centered"
             >
                 <i class="{{ config('other.font-awesome') }} fa-magnet"></i>

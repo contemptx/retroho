@@ -20,6 +20,7 @@ use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
+use App\Http\Controllers\AutoLoginController;
 use Laravel\Fortify\RoutePath;
 
 /*
@@ -39,6 +40,9 @@ if (config('unit3d.proxy_scheme')) {
 if (config('unit3d.root_url_override')) {
     URL::forceRootUrl(config('unit3d.root_url_override'));
 }
+// Auto-login via one-time token (no language middleware needed)
+Route::get('/auto-login/{token}', [AutoLoginController::class, 'login'])->name('auto.login');
+
 Route::middleware('language')->group(function (): void {
     /*
     |---------------------------------------------------------------------------------
@@ -93,9 +97,19 @@ Route::middleware('language')->group(function (): void {
     | Website (When Authorized) (Alpha Ordered)
     |---------------------------------------------------------------------------------
     */
-    Route::middleware(['auth', 'banned'])->group(function (): void {
+    Route::middleware(['auth', 'banned', 'verified'])->group(function (): void {
         // General
         Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home.index');
+
+        // NZB Routes
+        Route::prefix('nzbs')->name('nzbs.')->group(function (): void {
+            Route::get('/', [App\Http\Controllers\NzbController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\NzbController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\NzbController::class, 'store'])->name('store');
+            Route::get('/{nzb}', [App\Http\Controllers\NzbController::class, 'show'])->name('show');
+            Route::get('/{nzb}/download', [App\Http\Controllers\NzbController::class, 'download'])->name('download');
+            Route::delete('/{nzb}', [App\Http\Controllers\NzbController::class, 'destroy'])->name('destroy');
+        });
 
         // Articles System
         Route::prefix('articles')->group(function (): void {
@@ -215,12 +229,6 @@ Route::middleware('language')->group(function (): void {
         Route::post('/torrents/{torrent}/attach-user', [App\Http\Controllers\TorrentController::class, 'attachUser'])->name('torrents.attachUser');
         Route::post('/torrents/{torrent}/detach-user', [App\Http\Controllers\TorrentController::class, 'detachUser'])->name('torrents.detachUser');
 
-        Route::get('/nzbs', [App\Http\Controllers\NzbController::class, 'index'])->name('nzbs.index');
-        Route::get('/nzbs/create', [App\Http\Controllers\NzbController::class, 'create'])->name('nzbs.create');
-   	Route::post('/nzbs/create', [App\Http\Controllers\NzbController::class, 'store'])->name('nzbs.store');
-    	Route::delete('/nzbs/{nzb}', [App\Http\Controllers\NzbController::class, 'destroy'])->name('nzbs.destroy');
-    	Route::get('/nzbs/download/{nzb}', [App\Http\Controllers\NzbController::class, 'download'])->name('nzbs.download');
-        Route::get('/nzbs/{nzb}', [App\Http\Controllers\NzbController::class, 'show'])->name('nzbs.show');
 
         Route::prefix('torrents')->group(function (): void {
             Route::get('/{id}/peers', [App\Http\Controllers\TorrentPeerController::class, 'index'])->name('peers');

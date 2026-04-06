@@ -390,10 +390,29 @@ final class AnnounceController extends Controller
         $torrent = cache()->remember(
             'announce-torrents:by-infohash:'.$infoHash,
             8 * 3600,
-            fn () => Torrent::withoutGlobalScope(ApprovedScope::class)
-                ->select(['id', 'free', 'doubleup', 'seeders', 'leechers', 'times_completed', 'status'])
-                ->where('info_hash', '=', $infoHash)
-                ->firstOr(fn (): string => '-1')
+            function () use ($infoHash): Torrent|string {
+                $result = Torrent::withoutGlobalScope(ApprovedScope::class)
+                    ->select(['id', 'free', 'doubleup', 'seeders', 'leechers', 'times_completed', 'status'])
+                    ->where('info_hash', '=', $infoHash)
+                    ->first();
+
+                if ($result !== null) {
+                    return $result;
+                }
+
+                $truncatedHash = $infoHash;
+
+                $result = Torrent::withoutGlobalScope(ApprovedScope::class)
+                    ->select(['id', 'free', 'doubleup', 'seeders', 'leechers', 'times_completed', 'status'])
+                    ->whereRaw('LEFT(info_hash_v2, 20) = ?', [$truncatedHash])
+                    ->first();
+
+                if ($result !== null) {
+                    return $result;
+                }
+
+                return '-1';
+            }
         );
 
         // If Torrent Doesn't Exsist Return Error to Client

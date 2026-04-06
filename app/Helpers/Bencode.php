@@ -217,14 +217,38 @@ class Bencode
         return sha1((string) self::bencode($t['info']), true);
     }
 
+    public static function get_infohash_v2($t): string
+    {
+        return hash('sha256', (string) self::bencode($t['info']), true);
+    }
+
+    public static function get_torrent_version($t): int
+    {
+        $hasV1 = isset($t['info']['pieces']) || isset($t['info']['files']) || isset($t['info']['length']);
+        $hasV2 = isset($t['info']['file tree']) && isset($t['info']['meta version']) && $t['info']['meta version'] === 2;
+
+        if ($hasV1 && $hasV2) {
+            return 3; // hybrid
+        }
+
+        if ($hasV2) {
+            return 2; // v2-only
+        }
+
+        return 1; // v1-only
+    }
+
     public static function get_meta($t): array
     {
         $result = [];
         $size = 0;
         $count = 0;
 
-        // Multifile
-        if (isset($t['info']['files']) && \is_array($t['info']['files'])) {
+        $version = self::get_torrent_version($t);
+
+        if ($version >= 2 && isset($t['info']['file tree'])) {
+            self::walkFileTree($t['info']['file tree'], '', $size, $count);
+        } elseif (isset($t['info']['files']) && \is_array($t['info']['files'])) {
             foreach ($t['info']['files'] as $file) {
                 $count++;
                 $size += $file['length'];
@@ -242,6 +266,18 @@ class Bencode
         return $result;
     }
 
+    private static function walkFileTree(array $tree, string $prefix, int &$size, int &$count): void
+    {
+        foreach ($tree as $name => $node) {
+            if ($name === '' && isset($node['length'])) {
+                $count++;
+                $size += $node['length'];
+            } elseif (\is_array($node)) {
+                self::walkFileTree($node, $prefix.$name.'/', $size, $count);
+            }
+        }
+    }
+
     public static function get_name($t): ?string
     {
         $name = null;
@@ -251,7 +287,7 @@ class Bencode
             && \is_array($t['info'])
             && \array_key_exists('name', $t['info'])
             && \is_string($t['info']['name'])
-            && \array_key_exists('files', $t['info'])
+            && (\array_key_exists('files', $t['info']) || \array_key_exists('file tree', $t['info']))
         ) {
             $name = $t['info']['name'];
         }
@@ -261,6 +297,6 @@ class Bencode
 
     public static function is_v2_or_hybrid($t): bool
     {
-        return isset($t['piece layers']);
+        return isset($t['piece layers']) || (isset($t['info']['meta version']) && $t['info']['meta version'] === 2);
     }
 }

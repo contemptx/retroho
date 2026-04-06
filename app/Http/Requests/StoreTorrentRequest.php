@@ -57,10 +57,16 @@ class StoreTorrentRequest extends FormRequest
 
                     $decodedTorrent = TorrentTools::normalizeTorrent($value);
 
-                    $v2 = Bencode::is_v2_or_hybrid($decodedTorrent);
+                    $version = Bencode::get_torrent_version($decodedTorrent);
 
-                    if ($v2) {
-                        $fail('BitTorrent v2 (BEP 52) is not supported!');
+                    if ($version >= 2) {
+                        if (!isset($decodedTorrent['info']['file tree']) || !isset($decodedTorrent['info']['meta version'])) {
+                            $fail('Invalid BitTorrent v2 torrent: missing required file tree or meta version.');
+                        }
+
+                        if (!isset($decodedTorrent['info']['piece length']) || ($decodedTorrent['info']['piece length'] & ($decodedTorrent['info']['piece length'] - 1)) !== 0 || $decodedTorrent['info']['piece length'] < 16384) {
+                            $fail('BitTorrent v2 requires piece length to be a power of 2 and at least 16 KiB.');
+                        }
                     }
 
                     try {
@@ -75,16 +81,32 @@ class StoreTorrentRequest extends FormRequest
                         }
                     }*/
 
-                    $torrent = Torrent::withoutGlobalScope(ApprovedScope::class)->where('info_hash', '=', Bencode::get_infohash($decodedTorrent))->first();
+                    if ($version === 1 || $version === 3) {
+                        $torrent = Torrent::withoutGlobalScope(ApprovedScope::class)->where('info_hash', '=', Bencode::get_infohash($decodedTorrent))->first();
 
-                    if ($torrent !== null) {
-                        match ($torrent->status) {
-                            Torrent::PENDING   => $fail('A torrent with the same info_hash has already been uploaded and is pending moderation.'),
-                            Torrent::APPROVED  => $fail('A torrent with the same info_hash has already been uploaded and has been approved.'),
-                            Torrent::REJECTED  => $fail('A torrent with the same info_hash has already been uploaded and has been rejected.'),
-                            Torrent::POSTPONED => $fail('A torrent with the same info_hash has already been uploaded and is currently postponed.'),
-                            default            => null,
-                        };
+                        if ($torrent !== null) {
+                            match ($torrent->status) {
+                                Torrent::PENDING   => $fail('A torrent with the same info_hash has already been uploaded and is pending moderation.'),
+                                Torrent::APPROVED  => $fail('A torrent with the same info_hash has already been uploaded and has been approved.'),
+                                Torrent::REJECTED  => $fail('A torrent with the same info_hash has already been uploaded and has been rejected.'),
+                                Torrent::POSTPONED => $fail('A torrent with the same info_hash has already been uploaded and is currently postponed.'),
+                                default            => null,
+                            };
+                        }
+                    }
+
+                    if ($version >= 2) {
+                        $torrentV2 = Torrent::withoutGlobalScope(ApprovedScope::class)->where('info_hash_v2', '=', Bencode::get_infohash_v2($decodedTorrent))->first();
+
+                        if ($torrentV2 !== null) {
+                            match ($torrentV2->status) {
+                                Torrent::PENDING   => $fail('A torrent with the same v2 info_hash has already been uploaded and is pending moderation.'),
+                                Torrent::APPROVED  => $fail('A torrent with the same v2 info_hash has already been uploaded and has been approved.'),
+                                Torrent::REJECTED  => $fail('A torrent with the same v2 info_hash has already been uploaded and has been rejected.'),
+                                Torrent::POSTPONED => $fail('A torrent with the same v2 info_hash has already been uploaded and is currently postponed.'),
+                                default            => null,
+                            };
+                        }
                     }
                 }
             ],

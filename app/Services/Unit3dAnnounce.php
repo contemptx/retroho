@@ -79,7 +79,7 @@ class Unit3dAnnounce
 
     public static function addTorrent(Torrent $torrent): bool
     {
-        return self::put('torrents', [
+        $data = [
             'id'              => $torrent->id,
             'status'          => $torrent->status,
             'info_hash'       => bin2hex($torrent->info_hash),
@@ -89,15 +89,28 @@ class Unit3dAnnounce
             'times_completed' => $torrent->times_completed,
             'download_factor' => max(0, 100 - $torrent->free),
             'upload_factor'   => $torrent->doubleup ? 200 : 100,
-        ]);
+        ];
+
+        if ($torrent->info_hash_v2 !== null) {
+            $data['info_hash_v2'] = bin2hex($torrent->info_hash_v2);
+            $data['torrent_version'] = $torrent->torrent_version;
+        }
+
+        return self::put('torrents', $data);
     }
 
     public static function removeTorrent(Torrent $torrent): bool
     {
-        return self::delete('torrents', [
+        $data = [
             'id'        => $torrent->id,
             'info_hash' => bin2hex($torrent->info_hash),
-        ]);
+        ];
+
+        if ($torrent->info_hash_v2 !== null) {
+            $data['info_hash_v2'] = bin2hex($torrent->info_hash_v2);
+        }
+
+        return self::delete('torrents', $data);
     }
 
     /**

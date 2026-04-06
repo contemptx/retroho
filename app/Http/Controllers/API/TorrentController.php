@@ -77,9 +77,10 @@ class TorrentController extends BaseController
             return $this->sendError('Validation Error.', 'You Must Provide A Valid Torrent File For Upload!');
         }
 
-        // Deplace and decode the torrent temporarily
         $decodedTorrent = TorrentTools::normalizeTorrent($requestFile);
-        $infohash = Bencode::get_infohash($decodedTorrent);
+        $version = Bencode::get_torrent_version($decodedTorrent);
+        $infohash = ($version === 1 || $version === 3) ? Bencode::get_infohash($decodedTorrent) : str_repeat("\0", 20);
+        $infohashV2 = $version >= 2 ? Bencode::get_infohash_v2($decodedTorrent) : null;
 
         try {
             $meta = Bencode::get_meta($decodedTorrent);
@@ -106,6 +107,8 @@ class TorrentController extends BaseController
         $torrent->mediainfo = TorrentTools::anonymizeMediainfo($request->filled('mediainfo') ? $request->string('mediainfo') : null);
         $torrent->bdinfo = $request->input('bdinfo');
         $torrent->info_hash = $infohash;
+        $torrent->info_hash_v2 = $infohashV2;
+        $torrent->torrent_version = $version;
         $torrent->file_name = $fileName;
         $torrent->num_file = $meta['count'];
         $torrent->folder = Bencode::get_name($decodedTorrent);

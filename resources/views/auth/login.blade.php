@@ -57,7 +57,7 @@
 
                     <p class="auth-form__text-input-group">
                         <label class="auth-form__label" for="username">
-                            {{ __('auth.username') }}
+                            Username or Email
                         </label>
                         <input
                             id="username"

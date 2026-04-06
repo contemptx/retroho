@@ -74,7 +74,7 @@ class AutoRewardResurrection extends Command
                 $torrent->fl_until = Carbon::now()->addDays(3);
                 $torrent->save();
 
-                cache()->forget('announce-torrents:by-infohash:'.$torrent->info_hash);
+                $torrent->forgetAnnounceCache();
 
                 Unit3dAnnounce::addTorrent($torrent);
 

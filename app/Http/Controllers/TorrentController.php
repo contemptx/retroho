@@ -182,7 +182,7 @@ class TorrentController extends Controller
 
         $freeleechTokens->delete();
 
-        cache()->forget('announce-torrents:by-infohash:'.$torrent->info_hash);
+        $torrent->forgetAnnounceCache();
 
         Unit3dAnnounce::removeTorrent($torrent);
 
@@ -224,21 +224,26 @@ class TorrentController extends Controller
         $decodedTorrent = TorrentTools::normalizeTorrent($request->file('torrent'));
 
         $meta = Bencode::get_meta($decodedTorrent);
+        $version = Bencode::get_torrent_version($decodedTorrent);
 
         $fileName = uniqid('', true).'.torrent'; // Generate a unique name
         file_put_contents(getcwd().'/files/torrents/'.$fileName, Bencode::bencode($decodedTorrent));
 
-        $torrent = Torrent::create([
-            'info_hash'    => Bencode::get_infohash($decodedTorrent),
-            'file_name'    => $fileName,
-            'num_file'     => $meta['count'],
-            'folder'       => Bencode::get_name($decodedTorrent),
-            'size'         => $meta['size'],
-            'nfo'          => $request->hasFile('nfo') ? TorrentTools::getNfo($request->file('nfo')) : '',
-            'user_id'      => $user->id,
-            'moderated_at' => now(),
-            'moderated_by' => User::SYSTEM_USER_ID,
-        ] + $request->safe()->except(['torrent']));
+        $torrentData = [
+            'info_hash'       => ($version === 1 || $version === 3) ? Bencode::get_infohash($decodedTorrent) : str_repeat("\0", 20),
+            'info_hash_v2'    => $version >= 2 ? Bencode::get_infohash_v2($decodedTorrent) : null,
+            'torrent_version' => $version,
+            'file_name'       => $fileName,
+            'num_file'        => $meta['count'],
+            'folder'          => Bencode::get_name($decodedTorrent),
+            'size'            => $meta['size'],
+            'nfo'             => $request->hasFile('nfo') ? TorrentTools::getNfo($request->file('nfo')) : '',
+            'user_id'         => $user->id,
+            'moderated_at'    => now(),
+            'moderated_by'    => User::SYSTEM_USER_ID,
+        ];
+
+        $torrent = Torrent::create($torrentData + $request->safe()->except(['torrent']));
 
         // Populate the status/seeders/leechers/times_completed fields for the external tracker
         $torrent->refresh();

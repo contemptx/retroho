@@ -66,7 +66,7 @@ class TorrentHelper
             }
         }
 
-        cache()->forget('announce-torrents:by-infohash:'.$torrent->info_hash);
+        $torrent->forgetAnnounceCache();
 
         Unit3dAnnounce::addTorrent($torrent);
     }
