@@ -182,7 +182,24 @@ class FortifyServiceProvider extends ServiceProvider
                 'captcha'  => Rule::when(config('captcha.enabled'), 'hiddencaptcha')
             ]);
 
-            $user = User::query()->where('username', $request->username)->first();
+            // Allow login with either username or email
+            $loginField = $request->username;
+            
+            // Check if the input looks like an email address
+            if (filter_var($loginField, FILTER_VALIDATE_EMAIL)) {
+                $user = User::query()->where('email', $loginField)->first();
+            } else {
+                $user = User::query()->where('username', $loginField)->first();
+            }
+            
+            // If not found by the primary method, try the other one as fallback
+            if ($user === null) {
+                if (filter_var($loginField, FILTER_VALIDATE_EMAIL)) {
+                    $user = User::query()->where('username', $loginField)->first();
+                } else {
+                    $user = User::query()->where('email', $loginField)->first();
+                }
+            }
 
             if ($user === null) {
                 throw ValidationException::withMessages([
