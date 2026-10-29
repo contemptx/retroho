@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 // Isolated real-database regression suite. No production API, mail or credentials.
 require getenv('CONTRIBUTION_TEST_AUTOLOAD') ?: __DIR__.'/../../vendor/autoload.php';
+
 require __DIR__.'/../../app/Exceptions/TorrentContributionException.php';
+
 require __DIR__.'/../../app/Services/TorrentContributionLedger.php';
 
 use App\Exceptions\TorrentContributionException;
@@ -29,6 +31,7 @@ function expectReason(callable $callback, string $reason): void
 
         return;
     }
+
     throw new RuntimeException('Expected '.$reason);
 }
 function connection(): PDO
@@ -38,7 +41,7 @@ function connection(): PDO
 function payload(array $ids, int $generation = 1, string $desired = 'active', string $key = 'operation'): array
 {
     return ['generation' => $generation, 'desired' => $desired, 'username' => 'synthetic_customer',
-        'email' => 'synthetic@example.test', 'torrent_ids' => $ids, 'idempotency_key' => $key];
+        'email'          => 'synthetic@example.test', 'torrent_ids' => $ids, 'idempotency_key' => $key];
 }
 function attached(PDO $pdo, int $id): bool
 {
@@ -49,14 +52,17 @@ function attached(PDO $pdo, int $id): bool
 }
 function concurrent(array $operations, string $instance): void
 {
-    check(function_exists('pcntl_fork'), 'pcntl is required for the concurrency checks');
+    check(\function_exists('pcntl_fork'), 'pcntl is required for the concurrency checks');
     $children = [];
+
     foreach ($operations as $operation) {
         $pid = pcntl_fork();
         check($pid !== -1, 'Unable to create isolated test process');
+
         if ($pid === 0) {
             try {
                 $ledger = new TorrentContributionLedger(connection());
+
                 if ($operation['kind'] === 'independent') {
                     $ledger->attachIndependent(1, $operation['ids']);
                 } else {
@@ -68,14 +74,17 @@ function concurrent(array $operations, string $instance): void
                         }
                     }
                 }
+
                 exit(0);
             } catch (Throwable $error) {
-                fwrite(STDERR, 'Concurrent fixture failed: '.get_class($error).'\n');
+                fwrite(STDERR, 'Concurrent fixture failed: '.\get_class($error).'\n');
+
                 exit(1);
             }
         }
         $children[] = $pid;
     }
+
     foreach ($children as $pid) {
         pcntl_waitpid($pid, $status);
         check(pcntl_wifexited($status) && pcntl_wexitstatus($status) === 0, 'Concurrent operation failed');
@@ -86,19 +95,24 @@ if (!getenv('CONTRIBUTION_TEST_DSN')) {
     $file = tempnam(sys_get_temp_dir(), 'retroho-contribution-');
     putenv('CONTRIBUTION_TEST_DSN=sqlite:'.$file);
     $parentProcess = getmypid();
-    register_shutdown_function(static function () use ($file, $parentProcess): void { if (getmypid() === $parentProcess && file_exists($file)) { unlink($file); } });
+    register_shutdown_function(static function () use ($file, $parentProcess): void {
+        if (getmypid() === $parentProcess && file_exists($file)) {
+            unlink($file);
+        }
+    });
 }
 $dsn = getenv('CONTRIBUTION_TEST_DSN');
 $sqlite = str_starts_with($dsn, 'sqlite:');
+
 if (!$sqlite) {
     check(getenv('CONTRIBUTION_TEST_DATABASE') === 'retroho_contribution_test', 'Refuse any non-isolated database');
 }
 $capsule = new Manager(new Container());
 $capsule->addConnection($sqlite ? ['driver' => 'sqlite', 'database' => substr($dsn, 7), 'prefix' => ''] : [
-    'driver' => 'mysql', 'host' => getenv('CONTRIBUTION_TEST_HOST') ?: '127.0.0.1',
-    'port' => getenv('CONTRIBUTION_TEST_PORT') ?: 3306, 'database' => 'retroho_contribution_test',
+    'driver'   => 'mysql', 'host' => getenv('CONTRIBUTION_TEST_HOST') ?: '127.0.0.1',
+    'port'     => getenv('CONTRIBUTION_TEST_PORT') ?: 3306, 'database' => 'retroho_contribution_test',
     'username' => getenv('CONTRIBUTION_TEST_USER'), 'password' => getenv('CONTRIBUTION_TEST_PASSWORD') ?: '',
-    'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'prefix' => '',
+    'charset'  => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'prefix' => '',
 ]);
 $capsule->setAsGlobal();
 $container = $capsule->getContainer();
@@ -106,26 +120,35 @@ $container->instance('db', $capsule->getDatabaseManager());
 $container->bind('db.schema', static fn () => $capsule->getConnection()->getSchemaBuilder());
 Facade::setFacadeApplication($container);
 $schema = $capsule->schema();
+
 foreach (['torrent_source_operations', 'torrent_source_independent', 'torrent_source_resources', 'torrent_source_contributions', 'torrent_source_ledger', 'attached_torrent_user', 'torrents', 'users'] as $table) {
     $schema->dropIfExists($table);
 }
 $schema->create('users', static function (Blueprint $table): void {
-    $table->increments('id'); $table->string('username')->unique(); $table->string('email');
-    $table->boolean('active'); $table->boolean('can_download'); $table->timestamp('deleted_at')->nullable();
+    $table->increments('id');
+    $table->string('username')->unique();
+    $table->string('email');
+    $table->boolean('active');
+    $table->boolean('can_download');
+    $table->timestamp('deleted_at')->nullable();
 });
-$schema->create('torrents', static function (Blueprint $table): void { $table->increments('id'); $table->timestamp('deleted_at')->nullable(); });
+$schema->create('torrents', static function (Blueprint $table): void {
+    $table->increments('id');
+    $table->timestamp('deleted_at')->nullable();
+});
 $pivotMigration = require __DIR__.'/../../database/migrations/2024_09_26_135500_create_attached_torrent_user_table.php';
 $pivotMigration->up();
 $migration = require __DIR__.'/../../database/migrations/2026_10_29_000001_create_torrent_source_contributions.php';
 $migration->up();
 $pdo = $capsule->getConnection()->getPdo();
 $pdo->exec("INSERT INTO users (id,username,email,active,can_download) VALUES (1,'synthetic_customer','synthetic@example.test',1,1),(2,'other_customer','other@example.test',1,1)");
+
 for ($id = 10; $id <= 40; $id++) {
     $pdo->exec('INSERT INTO torrents (id) VALUES ('.$id.')');
 }
 $ledger = new TorrentContributionLedger($pdo);
 $instance = $ledger->capabilities(99)['ledger_instance_id'];
-check(strlen($instance) === 64 && $ledger->capabilities(98)['caller_id'] === 98, 'Durable capability scope');
+check(\strlen($instance) === 64 && $ledger->capabilities(98)['caller_id'] === 98, 'Durable capability scope');
 $checks = 1;
 
 $pdo->exec('INSERT INTO attached_torrent_user (user_id,torrent_id) VALUES (1,10),(1,10)');
@@ -176,11 +199,14 @@ check($ledger->apply(99, 'drift', payload([17], 1, 'active', 'drift-1'), $instan
 $checks++;
 
 foreach ([true, 0, -1, 1.5, '2'] as $generation) {
-    $bad = payload([18]); $bad['generation'] = $generation;
+    $bad = payload([18]);
+    $bad['generation'] = $generation;
     expectReason(static fn () => $ledger->apply(99, 'invalid', $bad, $instance), 'INVALID_REQUEST');
 }
 expectReason(static fn () => $ledger->apply(99, 'duplicates', payload([18, 18]), $instance), 'INVALID_REQUEST');
-$bad = payload([18]); $bad['username'] = 'other_customer'; $bad['email'] = 'other@example.test';
+$bad = payload([18]);
+$bad['username'] = 'other_customer';
+$bad['email'] = 'other@example.test';
 expectReason(static fn () => $ledger->apply(99, 'drift', $bad, $instance), 'BINDING_CONFLICT');
 check(!attached($pdo, 18), 'Invalid requests cannot change attachment state');
 $checks++;
@@ -188,8 +214,13 @@ $checks++;
 $trigger = $sqlite ? "CREATE TRIGGER fail_contribution_operation BEFORE INSERT ON torrent_source_operations BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END"
     : "CREATE TRIGGER fail_contribution_operation BEFORE INSERT ON torrent_source_operations FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic failure'";
 $pdo->exec($trigger);
-try { $ledger->apply(99, 'rollback', payload([19], 1, 'active', 'rollback-1'), $instance); throw new RuntimeException('Failure injection did not run'); }
-catch (PDOException|TorrentContributionException) {}
+
+try {
+    $ledger->apply(99, 'rollback', payload([19], 1, 'active', 'rollback-1'), $instance);
+
+    throw new RuntimeException('Failure injection did not run');
+} catch (PDOException|TorrentContributionException) {
+}
 $pdo->exec('DROP TRIGGER fail_contribution_operation');
 check(!attached($pdo, 19), 'Transaction rolls back effective attachment');
 expectReason(static fn () => $ledger->read(99, 'rollback', $instance), 'NOT_FOUND');
@@ -200,7 +231,8 @@ concurrent([
     ['kind' => 'source', 'id' => 'concurrent-a', 'input' => payload([20], 1, 'active', 'concurrent-a-1')],
     ['kind' => 'source', 'id' => 'concurrent-b', 'input' => payload([20], 1, 'active', 'concurrent-b-1')],
 ], $instance);
-$pdo = connection(); $ledger = new TorrentContributionLedger($pdo);
+$pdo = connection();
+$ledger = new TorrentContributionLedger($pdo);
 $ledger->apply(99, 'concurrent-a', payload([20], 2, 'withdrawn', 'concurrent-a-2'), $instance);
 check(attached($pdo, 20), 'Concurrent source baseline is not misattributed');
 $ledger->apply(99, 'concurrent-b', payload([20], 2, 'withdrawn', 'concurrent-b-2'), $instance);
@@ -212,7 +244,8 @@ concurrent([
     ['kind' => 'source', 'id' => 'concurrent-independent', 'input' => payload([21], 2, 'withdrawn', 'concurrent-independent-2')],
     ['kind' => 'independent', 'ids' => [21]],
 ], $instance);
-$pdo = connection(); $ledger = new TorrentContributionLedger($pdo);
+$pdo = connection();
+$ledger = new TorrentContributionLedger($pdo);
 check(attached($pdo, 21) && $ledger->read(99, 'concurrent-independent', $instance)['resources'][0]['independent_support'], 'Concurrent independent grant survives withdrawal');
 $checks++;
 
@@ -220,7 +253,8 @@ concurrent([
     ['kind' => 'source', 'id' => 'generation-race', 'input' => payload([22], 1, 'active', 'race-1'), 'allow' => 'STALE_GENERATION'],
     ['kind' => 'source', 'id' => 'generation-race', 'input' => payload([22], 2, 'withdrawn', 'race-2')],
 ], $instance);
-$pdo = connection(); $ledger = new TorrentContributionLedger($pdo);
+$pdo = connection();
+$ledger = new TorrentContributionLedger($pdo);
 $final = $ledger->read(99, 'generation-race', $instance);
 check($final['complete'] && $final['generation'] === 2 && !$final['resources'][0]['contribution_active'] && !attached($pdo, 22), 'Newer concurrent withdrawal wins');
 $checks++;
@@ -229,13 +263,27 @@ $checks++;
 // inherited base controller is irrelevant to these self-contained endpoints.
 $capsule->getConnection()->reconnect();
 eval('namespace App\\Http\\Controllers\\API; class BaseController {}');
-function response(): object { return new class { public function json(array $data, int $status = 200): Illuminate\Http\JsonResponse { return new Illuminate\Http\JsonResponse($data, $status); } }; }
+function response(): object
+{
+    return new class () {
+        public function json(array $data, int $status = 200): Illuminate\Http\JsonResponse
+        {
+            return new Illuminate\Http\JsonResponse($data, $status);
+        }
+    };
+}
+
 require __DIR__.'/../../app/Http/Controllers/API/TorrentContributionController.php';
 $controller = new App\Http\Controllers\API\TorrentContributionController();
-function requestFixture(?object $user, string $method = 'GET', ?array $body = null, array $headers = []): Illuminate\Http\Request {
+function requestFixture(?object $user, string $method = 'GET', ?array $body = null, array $headers = []): Illuminate\Http\Request
+{
     $request = Illuminate\Http\Request::create('/api/user/torrent-contributions/test', $method, [], [], [], ['CONTENT_TYPE' => 'application/json'], $body === null ? null : json_encode($body));
     $request->setUserResolver(static fn () => $user);
-    foreach ($headers as $name => $value) { $request->headers->set($name, $value); }
+
+    foreach ($headers as $name => $value) {
+        $request->headers->set($name, $value);
+    }
+
     return $request;
 }
 $owner = (object) ['id' => 99, 'group' => (object) ['is_owner' => true]];

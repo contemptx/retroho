@@ -20,15 +20,14 @@ final class TorrentContributionController extends BaseController
 
     public function show(Request $request, string $contributionId): JsonResponse
     {
-        return $this->respond($request, fn (TorrentContributionLedger $ledger, int $caller): array =>
-            $ledger->read($caller, $contributionId, $this->scope($request, $caller)));
+        return $this->respond($request, fn (TorrentContributionLedger $ledger, int $caller): array => $ledger->read($caller, $contributionId, $this->scope($request, $caller)));
     }
 
     public function update(Request $request, string $contributionId): JsonResponse
     {
         return $this->respond($request, function (TorrentContributionLedger $ledger, int $caller) use ($request, $contributionId): array {
-            if (!$request->isJson() || strlen($request->getContent()) > 65536 ||
-                !in_array(strtolower((string) $request->header('Content-Encoding', 'identity')), ['', 'identity'], true)) {
+            if (!$request->isJson() || \strlen($request->getContent()) > 65536 ||
+                !\in_array(strtolower((string) $request->header('Content-Encoding', 'identity')), ['', 'identity'], true)) {
                 throw new TorrentContributionException('INVALID_REQUEST', 422);
             }
 
@@ -39,7 +38,8 @@ final class TorrentContributionController extends BaseController
     private function scope(Request $request, int $caller): string
     {
         $instance = $request->header('X-Torrent-Ledger-Instance');
-        if ($request->header('X-Torrent-Caller') !== (string) $caller || !is_string($instance) || !preg_match('/^[a-f0-9]{64}$/D', $instance)) {
+
+        if ($request->header('X-Torrent-Caller') !== (string) $caller || !\is_string($instance) || !preg_match('/^[a-f0-9]{64}$/D', $instance)) {
             throw new TorrentContributionException('SCOPE_CONFLICT');
         }
 
@@ -50,10 +50,12 @@ final class TorrentContributionController extends BaseController
     {
         try {
             $caller = $request->user();
+
             if (!$caller || !$caller->group?->is_owner || !is_numeric($caller->id) || (int) $caller->id < 1) {
                 throw new TorrentContributionException('UNAUTHORIZED', 403);
             }
-            if (count($request->query()) !== 0) {
+
+            if ($request->query->count() !== 0) {
                 throw new TorrentContributionException('INVALID_REQUEST', 422);
             }
             $result = $operation(new TorrentContributionLedger(DB::connection()->getPdo()), (int) $caller->id);
@@ -61,10 +63,10 @@ final class TorrentContributionController extends BaseController
             return response()->json(['success' => true, 'data' => $result])->header('Cache-Control', 'no-store');
         } catch (TorrentContributionException $error) {
             return response()->json(['success' => false, 'code' => 'TORRENT_CONTRIBUTION_'.$error->reason,
-                'error' => 'The torrent contribution could not be confirmed.'], $error->status)->header('Cache-Control', 'no-store');
+                'error'                        => 'The torrent contribution could not be confirmed.'], $error->status)->header('Cache-Control', 'no-store');
         } catch (Throwable) {
             return response()->json(['success' => false, 'code' => 'TORRENT_CONTRIBUTION_UNAVAILABLE',
-                'error' => 'The torrent contribution is temporarily unavailable.'], 503)->header('Cache-Control', 'no-store');
+                'error'                        => 'The torrent contribution is temporarily unavailable.'], 503)->header('Cache-Control', 'no-store');
         }
     }
 }
