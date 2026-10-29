@@ -31,8 +31,10 @@ use App\Models\TorrentFile;
 use App\Models\Type;
 use App\Models\User;
 use App\Services\Unit3dAnnounce;
+use App\Services\TorrentContributionLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class TorrentController extends Controller
@@ -283,6 +285,7 @@ class TorrentController extends Controller
 
     public function manageUsers(Torrent $torrent)
     {
+        abort_unless(auth()->user()?->group?->is_owner, 403);
         $users = User::orderBy('username')->get();
 
         return view('torrent.manage_users', compact('torrent', 'users'));
@@ -290,24 +293,31 @@ class TorrentController extends Controller
 
     public function attachUser(Request $request, Torrent $torrent)
     {
-        $user = User::find($request->user_id);
-
-        if (!$torrent->attachedUsers->contains($user)) {
-            $torrent->attachedUsers()->attach($user);
-            return to_route('torrents.show', ['id' => $torrent->id])
-                ->withSuccess('User Attached!');
+        abort_unless(auth()->user()?->group?->is_owner, 403);
+        $request->validate(['user_id' => 'required|integer|exists:users,id']);
+        $user = User::findOrFail($request->user_id);
+        try {
+            (new TorrentContributionLedger(DB::connection()->getPdo()))->attachIndependent((int) $user->id, [(int) $torrent->id]);
+        } catch (\Throwable) {
+            return to_route('torrents.show', ['id' => $torrent->id])->withErrors('Current torrent access could not be changed. Please try again.');
         }
 
         return to_route('torrents.show', ['id' => $torrent->id])
-            ->withErrors('User is already attached!');
+            ->withSuccess('Independent torrent access recorded.');
     }
 
     public function detachUser(Request $request, Torrent $torrent)
     {
-        $user = User::find($request->user_id);
-        $torrent->attachedUsers()->detach($user);
+        abort_unless(auth()->user()?->group?->is_owner, 403);
+        $request->validate(['user_id' => 'required|integer|exists:users,id']);
+        $user = User::findOrFail($request->user_id);
+        try {
+            $receipt = (new TorrentContributionLedger(DB::connection()->getPdo()))->removeIndependent((int) $user->id, [(int) $torrent->id]);
+        } catch (\Throwable) {
+            return to_route('torrents.show', ['id' => $torrent->id])->withErrors('Current torrent access could not be changed. Please try again.');
+        }
 
         return to_route('torrents.show', ['id' => $torrent->id])
-            ->withSuccess('User Detatched!');
+            ->withSuccess($receipt['retained_source_count'] > 0 ? 'Independent access removed. An active purchase still supports this torrent.' : 'Torrent access removed.');
     }
 }

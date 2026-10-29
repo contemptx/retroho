@@ -45,6 +45,11 @@ Route::middleware(['auth:api', 'banned'])->prefix('torrents')->group(function ()
 
 // User Management API
 Route::middleware(['auth:api', 'banned'])->group(function (): void {
+    // Capability route precedes the caller-scoped opaque contribution route.
+    Route::get('/user/torrent-contributions/capabilities', [App\Http\Controllers\API\TorrentContributionController::class, 'capabilities']);
+    Route::get('/user/torrent-contributions/{contributionId}', [App\Http\Controllers\API\TorrentContributionController::class, 'show']);
+    Route::put('/user/torrent-contributions/{contributionId}', [App\Http\Controllers\API\TorrentContributionController::class, 'update']);
+
     // Get authenticated user info
     Route::get('/user', [App\Http\Controllers\API\UserController::class, 'show']);
     
@@ -53,9 +58,6 @@ Route::middleware(['auth:api', 'banned'])->group(function (): void {
     
     // Attach torrents to a user
     Route::post('/user/torrents', [App\Http\Controllers\API\UserController::class, 'attachTorrents']);
-    
-    // Remove all torrents from a user
-    Route::post('/user/remove-all-torrents', [App\Http\Controllers\API\UserController::class, 'removeAllTorrents']);
     
     // Verify user account exists and get status
     Route::post('/user/verify', [App\Http\Controllers\API\UserController::class, 'verify']);
@@ -69,9 +71,15 @@ Route::middleware(['auth:api', 'banned'])->group(function (): void {
     // Activate user account (move from validating group to active member group)
     Route::post('/user/activate', [App\Http\Controllers\API\UserController::class, 'activate']);
     
-    // Activate ALL users in validating group (bulk operation)
-    Route::post('/user/activate-all', [App\Http\Controllers\API\UserController::class, 'activateAll']);
-    
     // Generate auto-login token for a user
     Route::post('/user/auto-login-token', [App\Http\Controllers\API\UserController::class, 'generateAutoLoginToken']);
+    
+    // Remove all torrents from a user
+    Route::post('/user/remove-all-torrents', [App\Http\Controllers\API\UserController::class, 'removeAllTorrents']);
+    
+    // Restore a soft-deleted user account
+    Route::post('/user/restore', [App\Http\Controllers\API\UserController::class, 'restore']);
+    
+    // Enable downloads for a user (fix can_download = false)
+    Route::post('/user/enable-downloads', [App\Http\Controllers\API\UserController::class, 'enableDownloads']);
 });
