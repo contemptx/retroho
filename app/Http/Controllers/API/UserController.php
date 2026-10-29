@@ -146,9 +146,10 @@ class UserController extends BaseController
 
         // Validate the request - require at least one identifier
         $request->validate([
-            'customer_id' => 'nullable|integer',
-            'username'    => 'nullable|string',
-            'email'       => 'nullable|string|email',
+            'customer_id'     => 'nullable|integer',
+            'username'        => 'nullable|string',
+            'email'           => 'nullable|string|email',
+            'include_deleted' => 'nullable|boolean',
         ]);
 
         // Ensure at least one identifier is provided
@@ -161,7 +162,9 @@ class UserController extends BaseController
         }
 
         // Build query based on provided identifiers
-        $query = User::query();
+        // Use case-insensitive matching for email to handle variations
+        // Optionally include soft-deleted users
+        $query = $request->boolean('include_deleted') ? User::withTrashed() : User::query();
         
         if ($request->customer_id) {
             $query->orWhere('customer_id', $request->customer_id);
@@ -170,7 +173,8 @@ class UserController extends BaseController
             $query->orWhere('username', $request->username);
         }
         if ($request->email) {
-            $query->orWhere('email', $request->email);
+            // Case-insensitive email lookup using LOWER()
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
         }
 
         $user = $query->first();
@@ -199,160 +203,14 @@ class UserController extends BaseController
             'active'              => (bool) $user->active,
             'can_download'        => (bool) $user->can_download,
             'group_id'            => $user->group_id,
-            'group_name'          => $user->group->name ?? null,
+            'group_name'          => $user->group?->name,
+            'is_deleted'          => $user->trashed(),
+            'deleted_at'          => $user->deleted_at?->toIso8601String(),
             'created_at'          => $user->created_at?->toIso8601String(),
             'last_login'          => $user->last_login?->toIso8601String(),
             'attached_torrents'   => $attachedTorrentIds,
             'attached_torrent_count' => $attachedTorrentCount,
         ], 'User found');
-    }
-
-    /**
-     * Activate a user account.
-     * Moves user from validating group to active member group and sets active=true.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    final public function activate(Request $request): \Illuminate\Http\JsonResponse
-    {
-        // Check if an authenticated user has owner permissions
-        if (!auth()->user()->group->is_owner) {
-            return $this->sendError('Unauthorized', 'You do not have permission to activate users', 403);
-        }
-
-        // Validate the request
-        $request->validate([
-            'customer_id' => 'nullable|integer',
-            'username'    => 'nullable|string',
-            'email'       => 'nullable|string|email',
-        ]);
-
-        // Ensure at least one identifier is provided
-        if (!$request->customer_id && !$request->username && !$request->email) {
-            return $this->sendError(
-                'Validation Error',
-                'You must provide at least one of: customer_id, username, or email',
-                422
-            );
-        }
-
-        // Find the user
-        $query = User::query();
-        
-        if ($request->customer_id) {
-            $query->orWhere('customer_id', $request->customer_id);
-        }
-        if ($request->username) {
-            $query->orWhere('username', $request->username);
-        }
-        if ($request->email) {
-            $query->orWhere('email', $request->email);
-        }
-
-        $user = $query->first();
-
-        if (!$user) {
-            return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
-        }
-
-        // Get the member group (active users group)
-        $memberGroup = Group::query()->where('slug', '=', 'user')->first();
-
-        if (!$memberGroup) {
-            return $this->sendError('Configuration Error', 'Member group not found', 500);
-        }
-
-        // Update the user - activate them and move to member group
-        $previousGroupId = $user->group_id;
-        $previousGroupName = $user->group->name ?? 'Unknown';
-        $user->active = true;
-        $user->email_verified_at = $user->email_verified_at ?? now();
-        $user->group_id = $memberGroup->id;
-        $user->save();
-
-        return $this->sendResponse([
-            'success'             => true,
-            'user_id'             => $user->id,
-            'customer_id'         => $user->customer_id,
-            'username'            => $user->username,
-            'email'               => $user->email,
-            'active'              => (bool) $user->active,
-            'group_id'            => $user->group_id,
-            'group_name'          => $memberGroup->name,
-            'previous_group_id'   => $previousGroupId,
-            'previous_group_name' => $previousGroupName,
-            'updated_at'          => $user->updated_at?->toIso8601String(),
-        ], 'User activated successfully');
-    }
-
-    /**
-     * Activate ALL users in validating group.
-     * Bulk operation to fix users stuck in validation.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    final public function activateAll(Request $request): \Illuminate\Http\JsonResponse
-    {
-        // Check if an authenticated user has owner permissions
-        if (!auth()->user()->group->is_owner) {
-            return $this->sendError('Unauthorized', 'You do not have permission to activate users', 403);
-        }
-
-        // Get the validating group
-        $validatingGroup = Group::query()->where('slug', '=', 'validating')->first();
-        
-        if (!$validatingGroup) {
-            return $this->sendError('Configuration Error', 'Validating group not found', 500);
-        }
-
-        // Get the member group (active users group)
-        $memberGroup = Group::query()->where('slug', '=', 'user')->first();
-
-        if (!$memberGroup) {
-            return $this->sendError('Configuration Error', 'Member group not found', 500);
-        }
-
-        // Find all users in validating group or with active=false
-        $usersToActivate = User::where('group_id', $validatingGroup->id)
-            ->orWhere('active', false)
-            ->get();
-
-        $activatedUsers = [];
-        $errors = [];
-
-        foreach ($usersToActivate as $user) {
-            try {
-                $previousGroupId = $user->group_id;
-                $user->active = true;
-                $user->email_verified_at = $user->email_verified_at ?? now();
-                $user->group_id = $memberGroup->id;
-                $user->save();
-
-                $activatedUsers[] = [
-                    'user_id'           => $user->id,
-                    'username'          => $user->username,
-                    'email'             => $user->email,
-                    'previous_group_id' => $previousGroupId,
-                ];
-            } catch (\Exception $e) {
-                $errors[] = [
-                    'user_id'  => $user->id,
-                    'username' => $user->username,
-                    'error'    => $e->getMessage(),
-                ];
-            }
-        }
-
-        return $this->sendResponse([
-            'success'         => true,
-            'total_found'     => $usersToActivate->count(),
-            'total_activated' => count($activatedUsers),
-            'total_errors'    => count($errors),
-            'activated_users' => $activatedUsers,
-            'errors'          => $errors,
-        ], 'Bulk activation completed');
     }
 
     /**
@@ -387,7 +245,7 @@ class UserController extends BaseController
             );
         }
 
-        // Find the user
+        // Find the user (case-insensitive email lookup)
         $query = User::query();
         
         if ($request->customer_id) {
@@ -397,7 +255,7 @@ class UserController extends BaseController
             $query->orWhere('username', $request->username);
         }
         if ($request->email) {
-            $query->orWhere('email', $request->email);
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
         }
 
         $user = $query->first();
@@ -482,7 +340,7 @@ class UserController extends BaseController
             );
         }
 
-        // Find the user
+        // Find the user (case-insensitive email lookup)
         $query = User::query();
         
         if ($request->customer_id) {
@@ -492,7 +350,7 @@ class UserController extends BaseController
             $query->orWhere('username', $request->username);
         }
         if ($request->email) {
-            $query->orWhere('email', $request->email);
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
         }
 
         $user = $query->first();
@@ -534,6 +392,84 @@ class UserController extends BaseController
             'password_generated' => $passwordGenerated,
             'updated_at'        => $user->updated_at?->toIso8601String(),
         ], 'Password updated successfully');
+    }
+
+    /**
+     * Activate a user account.
+     * Moves user from validating group to active member group and sets active=true.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    final public function activate(Request $request): \Illuminate\Http\JsonResponse
+    {
+        // Check if an authenticated user has owner permissions
+        if (!auth()->user()->group->is_owner) {
+            return $this->sendError('Unauthorized', 'You do not have permission to activate users', 403);
+        }
+
+        // Validate the request
+        $request->validate([
+            'customer_id' => 'nullable|integer',
+            'username'    => 'nullable|string',
+            'email'       => 'nullable|string|email',
+        ]);
+
+        // Ensure at least one identifier is provided
+        if (!$request->customer_id && !$request->username && !$request->email) {
+            return $this->sendError(
+                'Validation Error',
+                'You must provide at least one of: customer_id, username, or email',
+                422
+            );
+        }
+
+        // Find the user
+        $query = User::query();
+        
+        if ($request->customer_id) {
+            $query->orWhere('customer_id', $request->customer_id);
+        }
+        if ($request->username) {
+            $query->orWhere('username', $request->username);
+        }
+        if ($request->email) {
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
+        }
+
+        $user = $query->first();
+
+        if (!$user) {
+            return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
+        }
+
+        // Get the member group (active users group)
+        $memberGroup = cache()->rememberForever('member_group', fn () => Group::query()->where('slug', '=', 'user')->first());
+
+        if (!$memberGroup) {
+            return $this->sendError('Configuration Error', 'Member group not found', 500);
+        }
+
+        // Update the user - activate them and move to member group
+        $previousGroupId = $user->group_id;
+        $user->active = true;
+        $user->can_download = true;  // Ensure download capability is enabled
+        $user->email_verified_at = $user->email_verified_at ?? now();
+        $user->group_id = $memberGroup->id;
+        $user->save();
+
+        return $this->sendResponse([
+            'success'           => true,
+            'user_id'           => $user->id,
+            'customer_id'       => $user->customer_id,
+            'username'          => $user->username,
+            'email'             => $user->email,
+            'active'            => (bool) $user->active,
+            'group_id'          => $user->group_id,
+            'group_name'        => $memberGroup->name,
+            'previous_group_id' => $previousGroupId,
+            'updated_at'        => $user->updated_at?->toIso8601String(),
+        ], 'User activated successfully');
     }
 
     /**
@@ -584,7 +520,7 @@ class UserController extends BaseController
         } elseif ($request->has('username') && $request->username !== null) {
             $user = User::where('username', $request->username)->firstOrFail();
         } elseif ($request->has('email') && $request->email !== null) {
-            $user = User::where('email', $request->email)->firstOrFail();
+            $user = User::whereRaw('LOWER(email) = ?', [strtolower($request->email)])->firstOrFail();
         }
 
         if (!$user) {
@@ -630,71 +566,8 @@ class UserController extends BaseController
     }
 
     /**
-     * Remove all torrents from a user.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    final public function removeAllTorrents(Request $request): \Illuminate\Http\JsonResponse
-    {
-        // Check if an authenticated user has owner permissions
-        if (!auth()->user()->group->is_owner) {
-            return $this->sendError('Unauthorized', 'You do not have permission to remove torrents from users', 403);
-        }
-
-        // Validate the request
-        $request->validate([
-            'customer_id' => 'nullable|integer',
-            'username'    => 'nullable|string',
-            'email'       => 'nullable|string|email',
-        ]);
-
-        // Ensure at least one identifier is provided
-        if (!$request->customer_id && !$request->username && !$request->email) {
-            return $this->sendError(
-                'Validation Error',
-                'You must provide at least one of: customer_id, username, or email',
-                422
-            );
-        }
-
-        // Find the user
-        $query = User::query();
-        
-        if ($request->customer_id) {
-            $query->orWhere('customer_id', $request->customer_id);
-        }
-        if ($request->username) {
-            $query->orWhere('username', $request->username);
-        }
-        if ($request->email) {
-            $query->orWhere('email', $request->email);
-        }
-
-        $user = $query->first();
-
-        if (!$user) {
-            return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
-        }
-
-        // Get count before removing
-        $previousCount = $user->attachedTorrents()->count();
-        
-        // Remove all torrents
-        $user->attachedTorrents()->detach();
-
-        return $this->sendResponse([
-            'success'        => true,
-            'user_id'        => $user->id,
-            'customer_id'    => $user->customer_id,
-            'username'       => $user->username,
-            'email'          => $user->email,
-            'removed_count'  => $previousCount,
-        ], 'All torrents removed successfully');
-    }
-
-    /**
-     * Generate a one-time auto-login token for a user.
+     * Generate an auto-login token for a user.
+     * The token can be used once to log in the user automatically.
      *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -723,6 +596,79 @@ class UserController extends BaseController
             );
         }
 
+        // Find the user (case-insensitive email lookup)
+        $query = User::query();
+        
+        if ($request->customer_id) {
+            $query->orWhere('customer_id', $request->customer_id);
+        }
+        if ($request->username) {
+            $query->orWhere('username', $request->username);
+        }
+        if ($request->email) {
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
+        }
+
+        $user = $query->first();
+
+        if (!$user) {
+            return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
+        }
+
+        // Check if user is active
+        if (!$user->active) {
+            return $this->sendError('User Inactive', 'User account is not active', 403);
+        }
+
+        // Use the AutoLoginToken model to generate token (stored in database)
+        $expiresInMinutes = $request->integer('expires_in_minutes', 5);
+        $autoLoginToken = \App\Models\AutoLoginToken::generateFor($user, $expiresInMinutes);
+
+        // Build the auto-login URL (uses path format: /auto-login/{token})
+        $autoLoginUrl = url('/auto-login/' . $autoLoginToken->token);
+
+        return $this->sendResponse([
+            'success'            => true,
+            'user_id'            => $user->id,
+            'username'           => $user->username,
+            'token'              => $autoLoginToken->token,
+            'auto_login_url'     => $autoLoginUrl,
+            'expires_at'         => $autoLoginToken->expires_at->toIso8601String(),
+            'expires_in_minutes' => $expiresInMinutes,
+        ], 'Auto-login token generated successfully');
+    }
+
+    /**
+     * Remove all torrents from a user.
+     * Used when unlinking a RetroHo account from the customer portal.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    final public function removeAllTorrents(Request $request): \Illuminate\Http\JsonResponse
+    {
+        // Check if an authenticated user has owner permissions
+        if (!auth()->user()->group->is_owner) {
+            return $this->sendError('Unauthorized', 'You do not have permission to remove torrents from users', 403);
+        }
+
+        // Validate the request
+        $request->validate([
+            'customer_id' => 'nullable|integer',
+            'username'    => 'nullable|string',
+            'email'       => 'nullable|string|email',
+            'reason'      => 'nullable|string|max:255',
+        ]);
+
+        // Ensure at least one identifier is provided
+        if (!$request->customer_id && !$request->username && !$request->email) {
+            return $this->sendError(
+                'Validation Error',
+                'You must provide at least one of: customer_id, username, or email',
+                422
+            );
+        }
+
         // Find the user
         $query = User::query();
         
@@ -733,7 +679,7 @@ class UserController extends BaseController
             $query->orWhere('username', $request->username);
         }
         if ($request->email) {
-            $query->orWhere('email', $request->email);
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
         }
 
         $user = $query->first();
@@ -742,34 +688,199 @@ class UserController extends BaseController
             return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
         }
 
-        // Generate a secure token
-        $token = bin2hex(random_bytes(32));
-        $expiresInMinutes = $request->expires_in_minutes ?? 5;
-        $expiresAt = now()->addMinutes($expiresInMinutes);
+        // Get the current attached torrents before removing
+        $attachedTorrentIds = $user->attachedTorrents()->pluck('torrents.id')->toArray();
+        $torrentsRemoved = count($attachedTorrentIds);
 
-        // Store the token (you might want to add a tokens table for this)
-        // For now, we'll use a simple approach with cache
-        cache()->put(
-            'auto_login_token_' . $token,
-            [
-                'user_id'    => $user->id,
-                'expires_at' => $expiresAt->toIso8601String(),
-            ],
-            $expiresAt
-        );
-
-        // Build the auto-login URL
-        $autoLoginUrl = config('app.url') . '/auto-login?token=' . $token;
+        // Remove all attached torrents
+        $user->attachedTorrents()->detach();
 
         return $this->sendResponse([
-            'success'        => true,
-            'user_id'        => $user->id,
-            'username'       => $user->username,
-            'token'          => $token,
-            'auto_login_url' => $autoLoginUrl,
-            'expires_at'     => $expiresAt->toIso8601String(),
-            'expires_in_minutes' => $expiresInMinutes,
-        ], 'Auto-login token generated successfully');
+            'success'          => true,
+            'user_id'          => $user->id,
+            'customer_id'      => $user->customer_id,
+            'username'         => $user->username,
+            'email'            => $user->email,
+            'torrents_removed' => $torrentsRemoved,
+            'torrent_ids'      => $attachedTorrentIds,
+            'reason'           => $request->reason ?? 'Account unlinked from portal',
+        ], 'All torrents removed successfully');
+    }
+
+    /**
+     * Restore a soft-deleted user account.
+     * Also resets their password and returns the new credentials.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    final public function restore(Request $request): \Illuminate\Http\JsonResponse
+    {
+        // Check if an authenticated user has owner permissions
+        if (!auth()->user()->group->is_owner) {
+            return $this->sendError('Unauthorized', 'You do not have permission to restore users', 403);
+        }
+
+        // Validate the request
+        $request->validate([
+            'customer_id' => 'nullable|integer',
+            'username'    => 'nullable|string',
+            'email'       => 'nullable|string|email',
+        ]);
+
+        // Ensure at least one identifier is provided
+        if (!$request->customer_id && !$request->username && !$request->email) {
+            return $this->sendError(
+                'Validation Error',
+                'You must provide at least one of: customer_id, username, or email',
+                422
+            );
+        }
+
+        // Find the user INCLUDING soft-deleted ones
+        $query = User::withTrashed();
+        
+        if ($request->customer_id) {
+            $query->orWhere('customer_id', $request->customer_id);
+        }
+        if ($request->username) {
+            $query->orWhere('username', $request->username);
+        }
+        if ($request->email) {
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
+        }
+
+        $user = $query->first();
+
+        if (!$user) {
+            return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
+        }
+
+        // Check if user is actually deleted
+        if (!$user->trashed()) {
+            return $this->sendResponse([
+                'restored'    => false,
+                'was_deleted' => false,
+                'user_id'     => $user->id,
+                'username'    => $user->username,
+                'email'       => $user->email,
+                'message'     => 'User is not deleted, no restoration needed',
+            ], 'User is already active');
+        }
+
+        // Restore the user
+        $user->restore();
+
+        // Get the member group
+        $memberGroup = cache()->rememberForever('member_group', fn () => Group::query()->where('slug', '=', 'user')->first());
+
+        // Generate a new password and fully reactivate the account
+        $newPassword = $this->generateSecurePassword();
+        $user->password = Hash::make($newPassword);
+        $user->active = true;
+        $user->can_download = true;  // IMPORTANT: Re-enable download capability
+        $user->group_id = $memberGroup->id;  // Move back to User group
+        $user->save();
+
+        return $this->sendResponse([
+            'restored'    => true,
+            'user_id'     => $user->id,
+            'customer_id' => $user->customer_id,
+            'username'    => $user->username,
+            'email'       => $user->email,
+            'password'    => $newPassword,
+            'active'      => (bool) $user->active,
+            'group_id'    => $user->group_id,
+            'group_name'  => $memberGroup->name,
+            'restored_at' => now()->toIso8601String(),
+        ], 'User restored successfully');
+    }
+
+    /**
+     * Enable download capability for a user.
+     * Fixes users who have can_download = false but should be able to download.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    final public function enableDownloads(Request $request): \Illuminate\Http\JsonResponse
+    {
+        // Check if an authenticated user has owner permissions
+        if (!auth()->user()->group->is_owner) {
+            return $this->sendError('Unauthorized', 'You do not have permission to enable downloads for users', 403);
+        }
+
+        // Validate the request
+        $request->validate([
+            'customer_id' => 'nullable|integer',
+            'username'    => 'nullable|string',
+            'email'       => 'nullable|string|email',
+        ]);
+
+        // Ensure at least one identifier is provided
+        if (!$request->customer_id && !$request->username && !$request->email) {
+            return $this->sendError(
+                'Validation Error',
+                'You must provide at least one of: customer_id, username, or email',
+                422
+            );
+        }
+
+        // Find the user (case-insensitive email lookup)
+        $query = User::query();
+        
+        if ($request->customer_id) {
+            $query->orWhere('customer_id', $request->customer_id);
+        }
+        if ($request->username) {
+            $query->orWhere('username', $request->username);
+        }
+        if ($request->email) {
+            $query->orWhereRaw('LOWER(email) = ?', [strtolower($request->email)]);
+        }
+
+        $user = $query->first();
+
+        if (!$user) {
+            return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
+        }
+
+        // Check previous state
+        $wasDisabled = !$user->can_download;
+        $previousGroupId = $user->group_id;
+        $groupChanged = false;
+
+        // Get the member group and pruned group
+        $memberGroup = cache()->rememberForever('member_group', fn () => Group::query()->where('slug', '=', 'user')->first());
+        $prunedGroup = Group::query()->where('slug', '=', 'pruned')->first();
+
+        // Enable downloads
+        $user->can_download = true;
+        $user->active = true;  // Also ensure they're active
+        
+        // If user is in Pruned group, move them back to User group
+        if ($prunedGroup && $user->group_id === $prunedGroup->id) {
+            $user->group_id = $memberGroup->id;
+            $groupChanged = true;
+        }
+        
+        $user->save();
+
+        return $this->sendResponse([
+            'success'            => true,
+            'user_id'            => $user->id,
+            'customer_id'        => $user->customer_id,
+            'username'           => $user->username,
+            'email'              => $user->email,
+            'can_download'       => (bool) $user->can_download,
+            'active'             => (bool) $user->active,
+            'was_disabled'       => $wasDisabled,
+            'group_changed'      => $groupChanged,
+            'previous_group_id'  => $previousGroupId,
+            'group_id'           => $user->group_id,
+            'group_name'         => $user->group?->name,
+            'updated_at'         => $user->updated_at?->toIso8601String(),
+        ], $wasDisabled ? 'Downloads enabled successfully' : 'User already had downloads enabled');
     }
 
     /**

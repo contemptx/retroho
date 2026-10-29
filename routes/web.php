@@ -43,6 +43,12 @@ if (config('unit3d.root_url_override')) {
 // Auto-login via one-time token (no language middleware needed)
 Route::get('/auto-login/{token}', [AutoLoginController::class, 'login'])->name('auto.login');
 
+// Registration disabled - redirect to portal message
+Route::get("/register/{code?}", function() {
+    return view("auth.registration-disabled");
+})->where("code", ".*")->name("register");
+
+
 Route::middleware('language')->group(function (): void {
     /*
     |---------------------------------------------------------------------------------

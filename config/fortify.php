@@ -140,7 +140,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Features::registration(), // Disabled - accounts created via ArcadeSystems portal
         Features::resetPasswords(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
