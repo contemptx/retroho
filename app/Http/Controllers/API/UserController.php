@@ -22,8 +22,10 @@ use App\Models\Group;
 use App\Models\Torrent;
 use App\Models\User;
 use App\Rules\EmailBlacklist;
+use App\Services\TorrentContributionLedger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -554,7 +556,7 @@ class UserController extends BaseController
             'customer_id' => 'nullable|integer|exists:users,customer_id',
             'username'    => 'nullable|string|exists:users,username',
             'email'       => 'nullable|string|email|exists:users,email',
-            'torrent_sku' => 'required|array|min:1',
+            'torrent_sku' => 'required|array|min:1|max:1000',
             'torrent_sku.*' => 'integer|exists:torrents,id',
         ], [
             'customer_id.exists' => 'No user found with the provided customer_id.',
@@ -595,14 +597,15 @@ class UserController extends BaseController
         // Ensure they're integers for consistency
         $torrentIds = array_map('intval', $request->torrent_sku);
         
-        // Get the count before attaching
-        $previousCount = $user->attachedTorrents()->count();
-        
-        // Attach torrents to user (sync without detaching existing)
-        $user->attachedTorrents()->syncWithoutDetaching($torrentIds);
-
-        // Get the updated list of attached torrents
-        $attachedTorrents = $user->attachedTorrents()->pluck('torrents.id')->toArray();
+        // This is explicit independent support, even if a source contribution
+        // already provides the same effective pivot.
+        try {
+            $receipt = (new TorrentContributionLedger(DB::connection()->getPdo()))->attachIndependent((int) $user->id, $torrentIds);
+        } catch (\Throwable) {
+            return $this->sendError('Torrent Access Unavailable', 'Current torrent access could not be changed. Please try again.', 503);
+        }
+        $previousCount = $receipt['previous_count'];
+        $attachedTorrents = $receipt['attached_torrents'];
         $newCount = count($attachedTorrents);
 
         // Verify which of the requested torrents are now attached
@@ -622,7 +625,7 @@ class UserController extends BaseController
             'attached_torrents'     => $attachedTorrents,
             'attached_torrent_count' => $newCount,
             'previous_count'        => $previousCount,
-            'newly_attached'        => $torrentIds,
+            'newly_attached'        => $receipt['newly_attached'],
             'newly_attached_count'  => $newCount - $previousCount,
             'verification_results'  => $verificationResults,
             'all_verified'          => !in_array(false, array_column($verificationResults, 'has_access')),
@@ -677,11 +680,11 @@ class UserController extends BaseController
             return $this->sendError('User Not Found', 'Unable to find user with the provided identifier', 404);
         }
 
-        // Get count before removing
-        $previousCount = $user->attachedTorrents()->count();
-        
-        // Remove all torrents
-        $user->attachedTorrents()->detach();
+        try {
+            $receipt = (new TorrentContributionLedger(DB::connection()->getPdo()))->removeIndependent((int) $user->id);
+        } catch (\Throwable) {
+            return $this->sendError('Torrent Access Unavailable', 'Current torrent access could not be changed. Please try again.', 503);
+        }
 
         return $this->sendResponse([
             'success'        => true,
@@ -689,8 +692,10 @@ class UserController extends BaseController
             'customer_id'    => $user->customer_id,
             'username'       => $user->username,
             'email'          => $user->email,
-            'removed_count'  => $previousCount,
-        ], 'All torrents removed successfully');
+            'removed_count'  => $receipt['removed_count'],
+            'retained_source_count' => $receipt['retained_source_count'],
+            'source_contributions_preserved' => true,
+        ], 'Independent torrent attachments removed; active source contributions are preserved');
     }
 
     /**

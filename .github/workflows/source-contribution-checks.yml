@@ -1,0 +1,59 @@
+name: Source torrent contribution checks
+on:
+  pull_request:
+    paths:
+      - 'app/Services/TorrentContributionLedger.php'
+      - 'app/Exceptions/TorrentContributionException.php'
+      - 'app/Http/Controllers/API/TorrentContributionController.php'
+      - 'app/Http/Controllers/API/UserController.php'
+      - 'app/Http/Controllers/TorrentController.php'
+      - 'database/migrations/2026_10_29_000001_create_torrent_source_contributions.php'
+      - 'routes/api.php'
+      - 'tests/source-contributions/**'
+      - '.github/workflows/source-contribution-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transaction-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: synthetic-test-password
+          MYSQL_DATABASE: retroho_contribution_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -psynthetic-test-password"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, pdo_sqlite, mbstring, pcntl
+          coverage: none
+          tools: composer:v2
+      - name: Install isolated Laravel test components
+        run: |
+          mkdir -p /tmp/retroho-contribution-tests
+          composer require --working-dir=/tmp/retroho-contribution-tests --no-interaction --no-scripts --no-plugins --no-progress illuminate/database:11.46.1 illuminate/events:11.46.1 illuminate/http:11.46.1
+      - name: Syntax and actual SQLite transaction checks
+        env:
+          CONTRIBUTION_TEST_AUTOLOAD: /tmp/retroho-contribution-tests/vendor/autoload.php
+        run: |
+          for file in app/Services/TorrentContributionLedger.php app/Exceptions/TorrentContributionException.php app/Http/Controllers/API/TorrentContributionController.php app/Http/Controllers/API/UserController.php app/Http/Controllers/TorrentController.php routes/api.php database/migrations/2026_10_29_000001_create_torrent_source_contributions.php tests/source-contributions/run.php; do php -l "$file"; done
+          php tests/source-contributions/run.php
+      - name: Actual MySQL migration, row-lock and concurrency checks
+        env:
+          CONTRIBUTION_TEST_AUTOLOAD: /tmp/retroho-contribution-tests/vendor/autoload.php
+          CONTRIBUTION_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=retroho_contribution_test
+          CONTRIBUTION_TEST_DATABASE: retroho_contribution_test
+          CONTRIBUTION_TEST_HOST: 127.0.0.1
+          CONTRIBUTION_TEST_PORT: '3306'
+          CONTRIBUTION_TEST_USER: root
+          CONTRIBUTION_TEST_PASSWORD: synthetic-test-password
+        run: php tests/source-contributions/run.php

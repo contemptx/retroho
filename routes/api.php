@@ -45,6 +45,11 @@ Route::middleware(['auth:api', 'banned'])->prefix('torrents')->group(function ()
 
 // User Management API
 Route::middleware(['auth:api', 'banned'])->group(function (): void {
+    // Capability route precedes the caller-scoped opaque contribution route.
+    Route::get('/user/torrent-contributions/capabilities', [App\Http\Controllers\API\TorrentContributionController::class, 'capabilities']);
+    Route::get('/user/torrent-contributions/{contributionId}', [App\Http\Controllers\API\TorrentContributionController::class, 'show']);
+    Route::put('/user/torrent-contributions/{contributionId}', [App\Http\Controllers\API\TorrentContributionController::class, 'update']);
+
     // Get authenticated user info
     Route::get('/user', [App\Http\Controllers\API\UserController::class, 'show']);
     
