@@ -302,6 +302,54 @@ check($valid->getStatusCode() === 200 && $valid->getData(true)['data']['complete
 check(str_contains((string) $valid->headers->get('Cache-Control'), 'no-store'), 'Responses cannot be cached');
 $checks++;
 
+// Existing Authenticate middleware merges the Bearer token into Request input.
+// Use the real Laravel merge operation: a normal GET mutates the query bag,
+// whereas a JSON PUT mutates the decoded JSON bag but not the original body.
+$transportToken = 'synthetic-auth-middleware-token';
+$transportHeaders = ['Authorization' => 'Bearer '.$transportToken, 'X-Torrent-Caller' => '99', 'X-Torrent-Ledger-Instance' => $instance];
+$transportGet = Illuminate\Http\Request::create('/api/user/torrent-contributions/capabilities', 'GET');
+$transportGet->setUserResolver(static fn () => $owner);
+
+foreach ($transportHeaders as $name => $value) {
+    $transportGet->headers->set($name, $value);
+}
+$transportGet->merge(['api_token' => $transportGet->bearerToken()]);
+check($transportGet->query->count() === 1 && $transportGet->getQueryString() === null, 'Fixture reproduces middleware-injected query token with no client URL query');
+check($controller->capabilities($transportGet)->getStatusCode() === 200, 'Bearer-authenticated capabilities accepts existing middleware input mutation');
+$transportInput = payload([27], 1, 'active', 'middleware-input-1');
+$transportPut = requestFixture($owner, 'PUT', $transportInput, $transportHeaders);
+$transportPut->merge(['api_token' => $transportPut->bearerToken()]);
+check($controller->update($transportPut, 'middleware-input')->getStatusCode() === 200, 'JSON write validates original client body without middleware credential pollution');
+check($controller->show($transportGet, 'middleware-input')->getStatusCode() === 200, 'Scoped read accepts existing middleware input mutation');
+
+foreach (['api_token=synthetic-client-query-token', 'caller_id=99'] as $query) {
+    $clientQuery = Illuminate\Http\Request::create('/api/user/torrent-contributions/capabilities?'.$query, 'GET');
+    $clientQuery->setUserResolver(static fn () => $owner);
+    $clientQuery->headers->set('Authorization', 'Bearer '.$transportToken);
+    $clientQuery->merge(['api_token' => $clientQuery->bearerToken()]);
+    check($controller->capabilities($clientQuery)->getStatusCode() === 422, 'Explicit URL query parameters remain rejected after authentication');
+}
+
+foreach (['api_token', 'caller_id'] as $extraField) {
+    $clientInput = payload([28], 1, 'active', 'client-extra-'.$extraField);
+    $clientInput[$extraField] = $transportToken;
+    $clientBody = requestFixture($owner, 'PUT', $clientInput, $transportHeaders);
+    $clientBody->merge(['api_token' => $clientBody->bearerToken()]);
+    check($controller->update($clientBody, 'client-extra-'.$extraField)->getStatusCode() === 422 && !attached($pdo, 28), 'Explicit client body credentials and scope fields remain rejected');
+}
+
+foreach (['{broken', 'null', '17', '[]', json_encode([$transportInput])] as $rawBody) {
+    $invalidBody = Illuminate\Http\Request::create('/api/user/torrent-contributions/invalid-body', 'PUT', [], [], [], ['CONTENT_TYPE' => 'application/json'], $rawBody);
+    $invalidBody->setUserResolver(static fn () => $owner);
+
+    foreach ($transportHeaders as $name => $value) {
+        $invalidBody->headers->set($name, $value);
+    }
+    $invalidBody->merge(['api_token' => $invalidBody->bearerToken()]);
+    check($controller->update($invalidBody, 'invalid-body')->getStatusCode() === 422, 'Malformed, scalar and list JSON are client errors, never availability errors');
+}
+$checks++;
+
 // Execute the merged production attachment handlers against the isolated
 // database. The fixture supplies only the unchanged auth/response shell and
 // User model table binding; request-validation rules are outside this check.
