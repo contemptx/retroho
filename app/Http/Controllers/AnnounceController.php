@@ -1,4 +1,5 @@
 <?php
+
 /**
  * NOTICE OF LICENSE.
  *
@@ -47,6 +48,17 @@ final class AnnounceController extends Controller
     private const MIN = 1_800;
     private const MAX = 3_600;
 
+    // Aggregate operational outcomes only. No request or customer identifiers.
+    private const OUTCOME_FIELDS = [
+        'success', 'warning_164', 'internal_error',
+        'rejected_120', 'rejected_121', 'rejected_122', 'rejected_123', 'rejected_128', 'rejected_129',
+        'rejected_130', 'rejected_131', 'rejected_132', 'rejected_133', 'rejected_134', 'rejected_135', 'rejected_136', 'rejected_138',
+        'rejected_140', 'rejected_141', 'rejected_142', 'rejected_150', 'rejected_151', 'rejected_152', 'rejected_162',
+        'rejected_162_duplicate', 'rejected_162_interval',
+    ];
+
+    private string $intervalRejection = 'rejected_162';
+
     // Port Blacklist
     private const BLACK_PORTS = [
         // Hyper Text Transfer Protocol (HTTP) - port used for web traffic
@@ -81,6 +93,9 @@ final class AnnounceController extends Controller
      */
     public function index(Request $request, string $passkey): ?Response
     {
+        $outcome = 'internal_error';
+        $this->intervalRejection = 'rejected_162';
+
         try {
             // Check client.
             $this->checkClient($request);
@@ -107,7 +122,7 @@ final class AnnounceController extends Controller
             $this->checkMinInterval($torrent, $queries, $user);
 
             // Check User Max Connections Per Torrent.
-            $this->checkMaxConnections($torrent, $user);
+            $this->checkMaxConnections($torrent, $user, $queries);
 
             // Check Download Slots.
             if (config('announce.slots_system.enabled')) {
@@ -122,16 +137,42 @@ final class AnnounceController extends Controller
             if ($visible) {
                 // Generate A Response For The Torrent Client.
                 $response = $this->generateSuccessAnnounceResponse($queries, $torrent, $user);
+                $outcome = 'success';
             } else {
                 $response = $this->generateWarningAnnounceResponse($torrent, new TrackerException(164, [':max' => $group->download_slots]));
+                $outcome = 'warning_164';
             }
         } catch (TrackerException $exception) {
             $response = $this->generateFailedAnnounceResponse($exception);
+            $outcome = $exception->getCode() === 162 ? $this->intervalRejection : 'rejected_'.$exception->getCode();
         } catch (Exception) {
             $response = 'd14:failure reason21:Internal Server Error8:intervali5400e12:min intervali5400ee';
+        } finally {
+            $this->recordAnnounceOutcome($outcome);
         }
 
         return $this->sendFinalAnnounceResponse($response);
+    }
+
+    private function recordAnnounceOutcome(string $outcome): void
+    {
+        try {
+            if (!\in_array($outcome, self::OUTCOME_FIELDS, true)) {
+                $outcome = 'internal_error';
+            }
+
+            // Keep one small hash per UTC hour and expire it atomically with the
+            // increment, so a failed second command cannot leave permanent keys.
+            Redis::connection('announce')->eval(
+                "local count = redis.call('HINCRBY', KEYS[1], ARGV[1], 1); redis.call('EXPIRE', KEYS[1], ARGV[2]); return count",
+                1,
+                config('cache.prefix').':announce:outcomes:'.now()->utc()->format('YmdH'),
+                $outcome,
+                48 * 3600,
+            );
+        } catch (Throwable) {
+            // Diagnostics must never change the tracker response or leak context.
+        }
     }
 
     /**
@@ -153,7 +194,7 @@ final class AnnounceController extends Controller
         }
 
         // Block Other Browser, Crawler (May Cheater or Faker Client) by check Requests headers
-        if(
+        if (
             $request->header('accept-language')
             || $request->header('referer')
             || $request->header('accept-charset')
@@ -207,7 +248,7 @@ final class AnnounceController extends Controller
         }
 
         // If Passkey Length Is Wrong
-        if(\strlen($passkey) !== 32) {
+        if (\strlen($passkey) !== 32) {
             throw new TrackerException(132, [':attribute' => 'passkey', ':rule' => 32]);
         }
 
@@ -492,6 +533,8 @@ final class AnnounceController extends Controller
         $lastAnnouncedAt = Redis::connection('announce')->command('SET', [$duplicateAnnounceKey, $now, ['NX', 'GET', 'EX' => 30]]);
 
         if ($lastAnnouncedAt !== false) {
+            $this->intervalRejection = 'rejected_162_duplicate';
+
             throw new TrackerException(162, [':elapsed' => $now - $lastAnnouncedAt]);
         }
 
@@ -503,11 +546,14 @@ final class AnnounceController extends Controller
 
         $lastAnnouncedAt = Redis::connection('announce')->command('SET', [$lastAnnouncedKey, $now, ['NX', 'GET', 'EX' => $randomMinInterval]]);
 
-        // Delete the timer if the user paused the torrent, and it's been at
-        // least 5 minutes since they last announced.
-        if ($event === 'stopped' && $lastAnnouncedAt < $now - 5 * 60) {
+        // A stopped session must be able to start again immediately. Keep the
+        // duplicate-event guard, but do not carry an old start into a new session.
+        if ($event === 'stopped') {
             Redis::connection('announce')->command('DEL', [$lastAnnouncedKey]);
-        } elseif ($lastAnnouncedAt !== false && !\in_array($event, ['completed', 'stopped'])) {
+            Redis::connection('announce')->command('DEL', [config('cache.prefix').'announce-lock:'.$user->id.'-'.$torrent->id.'-'.$queries->getPeerId().'-started']);
+        } elseif ($lastAnnouncedAt !== false && !\in_array($event, ['started', 'completed'])) {
+            $this->intervalRejection = 'rejected_162_interval';
+
             throw new TrackerException(162, [':elapsed' => $now - $lastAnnouncedAt]);
         }
     }
@@ -518,16 +564,32 @@ final class AnnounceController extends Controller
      * @throws TrackerException
      * @throws Throwable
      */
-    private function checkMaxConnections(Torrent $torrent, User $user): void
+    private function checkMaxConnections(Torrent $torrent, User $user, AnnounceQueryDTO $queries): void
     {
+        // Existing peers must be able to refresh or stop, including when an old
+        // batch or concurrent requests have already exceeded the limit.
+        if ($queries->event === 'stopped') {
+            return;
+        }
+
+        $currentPeer = $torrent->peers
+            ->where('user_id', '=', $user->id)
+            ->where('peer_id', '=', $queries->getPeerId())
+            ->where('active', '=', true)
+            ->first();
+
+        if ($currentPeer !== null) {
+            return;
+        }
+
         // Pull Count On Users Peers Per Torrent For Rate Limiting
         $connections = $torrent->peers
             ->where('user_id', '=', $user->id)
             ->where('active', '=', true)
             ->count();
 
-        // If Users Peer Count On A Single Torrent Is Greater Than X Return Error to Client
-        if ($connections > config('announce.rate_limit')) {
+        // Admit a new peer only while there is a free location.
+        if ($connections >= config('announce.rate_limit')) {
             throw new TrackerException(138, [':limit' => config('announce.rate_limit')]);
         }
     }
@@ -583,76 +645,37 @@ final class AnnounceController extends Controller
         $peersIpv4 = '';
         $peersIpv6 = '';
         $peerCount = 0;
-        $seederCount = 0;
-        $leecherCount = 0;
+        $activePeers = $torrent->peers->filter(fn ($peer) => $peer->active && $peer->visible);
+        $seederCount = $activePeers->where('seeder', '=', true)->count();
+        $leecherCount = $activePeers->where('seeder', '=', false)->count();
 
         /**
          * For non `stopped` event only where either the torrent has at least one leech, or the user is a leech.
          * We query peers from database and send peerlist, otherwise just quick return.
          */
-        if ($queries->event !== 'stopped') {
+        if ($queries->event !== 'stopped' && $queries->numwant > 0) {
             $limit = (min($queries->numwant, 25));
 
-            // Get Torrents Peers (Only include leechers in a seeder's peerlist)
-            if ($queries->left === 0) {
-                foreach ($torrent->peers as $peer) {
-                    if ($peer->active && $peer->seeder) {
-                        $seederCount++;
-                    }
-
-                    if ($peer->active && ! $peer->seeder) {
-                        $leecherCount++;
-                    }
-
-                    // Don't include other seeders, inactive peers, invisible peers nor other peers belonging to the same user
-                    if ($peer->seeder || !$peer->active || !$peer->visible || $peer->user_id === $user->id) {
-                        continue;
-                    }
-
-                    switch (\strlen((string) $peer['ip'])) {
-                        case 4:
-                            $peersIpv4 .= $peer['ip'].pack('n', (int) $peer['port']);
-                            $peerCount++;
-
-                            break;
-                        case 16:
-                            $peersIpv6 .= $peer['ip'].pack('n', (int) $peer['port']);
-                            $peerCount++;
-                    }
-
-                    if ($peerCount >= $limit) {
-                        break;
-                    }
+            // Sample eligible peers independently of the complete swarm counts.
+            // Rotation avoids repeatedly advertising only the first database rows.
+            foreach ($activePeers->shuffle() as $peer) {
+                if ($peer->user_id === $user->id || ($queries->left === 0 && $peer->seeder)) {
+                    continue;
                 }
-            } else {
-                foreach ($torrent->peers as $peer) {
-                    if ($peer->active && $peer->seeder) {
-                        $seederCount++;
-                    }
 
-                    if ($peer->active && ! $peer->seeder) {
-                        $leecherCount++;
-                    }
+                switch (\strlen((string) $peer['ip'])) {
+                    case 4:
+                        $peersIpv4 .= $peer['ip'].pack('n', (int) $peer['port']);
+                        $peerCount++;
 
-                    // Don't include inactive peers, invisible peers, nor other peers belonging to the same user
-                    if (!$peer->active || !$peer->visible || $peer->user_id === $user->id) {
-                        continue;
-                    }
-
-                    switch (\strlen((string) $peer['ip'])) {
-                        case 4:
-                            $peersIpv4 .= $peer['ip'].pack('n', (int) $peer['port']);
-                            $peerCount++;
-
-                            break;
-                        case 16:
-                            $peersIpv6 .= $peer['ip'].pack('n', (int) $peer['port']);
-                            $peerCount++;
-                    }
-
-                    if ($peerCount >= $limit) {
                         break;
-                    }
+                    case 16:
+                        $peersIpv6 .= $peer['ip'].pack('n', (int) $peer['port']);
+                        $peerCount++;
+                }
+
+                if ($peerCount >= $limit) {
+                    break;
                 }
             }
         }
