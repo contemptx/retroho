@@ -1,0 +1,70 @@
+name: Tracker announce and peer lifecycle checks
+on:
+  pull_request:
+    paths:
+      - 'app/Http/Controllers/AnnounceController.php'
+      - 'app/Console/Commands/AutoFlushPeers.php'
+      - 'tests/tracker/**'
+      - '.github/workflows/tracker-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tracker-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: synthetic-test-password
+          MYSQL_DATABASE: retroho_tracker_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -psynthetic-test-password"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s --health-timeout=3s --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, pdo_sqlite, mbstring, redis
+          coverage: none
+          tools: composer:v2
+      - name: Install isolated components matching production Laravel
+        run: |
+          mkdir -p /tmp/retroho-tracker-tests
+          composer require --working-dir=/tmp/retroho-tracker-tests --no-interaction --no-scripts --no-plugins --no-progress illuminate/database:11.19.0 illuminate/events:11.19.0 illuminate/http:11.19.0 illuminate/console:11.19.0 illuminate/redis:11.19.0
+      - name: Syntax, announce regressions and real Redis timers
+        env:
+          TRACKER_TEST_AUTOLOAD: /tmp/retroho-tracker-tests/vendor/autoload.php
+          TRACKER_TEST_REDIS_HOST: 127.0.0.1
+          TRACKER_TEST_REDIS_PORT: '6379'
+        run: |
+          php -l app/Http/Controllers/AnnounceController.php
+          php -l app/Console/Commands/AutoFlushPeers.php
+          php -l tests/tracker/run.php
+          php -l tests/tracker/cleanup.php
+          php tests/tracker/run.php
+      - name: SQLite peer cleanup races
+        env:
+          TRACKER_TEST_AUTOLOAD: /tmp/retroho-tracker-tests/vendor/autoload.php
+        run: php tests/tracker/cleanup.php
+      - name: MySQL peer cleanup races
+        env:
+          TRACKER_TEST_AUTOLOAD: /tmp/retroho-tracker-tests/vendor/autoload.php
+          TRACKER_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=retroho_tracker_test
+          TRACKER_TEST_DATABASE: retroho_tracker_test
+          TRACKER_TEST_HOST: 127.0.0.1
+          TRACKER_TEST_PORT: '3306'
+          TRACKER_TEST_USER: root
+          TRACKER_TEST_PASSWORD: synthetic-test-password
+        run: php tests/tracker/cleanup.php

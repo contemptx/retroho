@@ -48,37 +48,67 @@ class AutoFlushPeers extends Command
     final public function handle(): void
     {
         $carbon = new Carbon();
+        $cutoff = $carbon->copy()->subHours(2)->toDateTimeString();
         $peers = Peer::select(['id', 'torrent_id', 'user_id', 'seeder', 'updated_at'])
-            ->where('updated_at', '<', $carbon->copy()->subHours(2)->toDateTimeString())
+            ->where('updated_at', '<', $cutoff)
             ->where('active', '=', 1)
             ->get();
 
         foreach ($peers as $peer) {
-            History::query()
-                ->where('torrent_id', '=', $peer->torrent_id)
-                ->where('user_id', '=', $peer->user_id)
-                ->update([
-                    'active'     => false,
-                    'updated_at' => DB::raw('updated_at')
-                ]);
+            DB::transaction(static function () use ($peer, $cutoff): void {
+                // An announce may have refreshed this peer after the initial scan.
+                $expired = Peer::query()
+                    ->whereKey($peer->id)
+                    ->where('active', '=', 1)
+                    ->where('updated_at', '<', $cutoff)
+                    ->update([
+                        'active'     => false,
+                        'updated_at' => DB::raw('updated_at'),
+                    ]);
 
-            $peer->active = false;
-            $peer->timestamps = false;
-            $peer->save();
+                if ($expired === 0) {
+                    return;
+                }
+
+                // History belongs to the user/torrent pair, not this one location.
+                History::query()
+                    ->where('torrent_id', '=', $peer->torrent_id)
+                    ->where('user_id', '=', $peer->user_id)
+                    ->where('active', '=', 1)
+                    ->where('updated_at', '<', $cutoff)
+                    ->whereNotExists(static fn ($query) => $query
+                        ->selectRaw('1')
+                        ->from('peers')
+                        ->whereColumn('peers.user_id', 'history.user_id')
+                        ->whereColumn('peers.torrent_id', 'history.torrent_id')
+                        ->where('peers.active', '=', 1))
+                    ->update([
+                        'active'     => false,
+                        'updated_at' => DB::raw('updated_at'),
+                    ]);
+            }, 5);
         }
 
         // Keep peers that stopped being announced without a `stopped` event
         // in case a user has internet issues and comes back online within the
         // next 2 days
+        $deleteCutoff = $carbon->copy()->subDays(2)->toDateTimeString();
         $peers = Peer::select(['id', 'user_id'])
-            ->where('updated_at', '<', $carbon->copy()->subDays(2))
+            ->where('updated_at', '<', $deleteCutoff)
             ->where('active', '=', 0)
             ->get();
 
         foreach ($peers as $peer) {
-            cache()->decrement('user-leeching-count:'.$peer->user_id);
+            // A stopped peer may resume after the deletion candidates were read.
+            $deleted = Peer::query()
+                ->whereKey($peer->id)
+                ->where('active', '=', 0)
+                ->where('updated_at', '<', $deleteCutoff)
+                ->delete();
 
-            $peer->delete();
+            if ($deleted === 1) {
+                cache()->decrement('user-leeching-count:'.$peer->user_id);
+            }
         }
 
         $this->comment('Automated Flush Ghost Peers Command Complete');
