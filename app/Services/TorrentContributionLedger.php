@@ -202,7 +202,9 @@ final class TorrentContributionLedger
             }
             $after = $this->attached($userId);
 
-            return ['removed_count' => \count(array_diff($before, $after)), 'retained_source_count' => \count(array_intersect($ids, $after)), 'attached_torrents' => $after];
+            $removed = array_values(array_diff($before, $after));
+
+            return ['removed_count' => \count($removed), 'removed_torrent_ids' => $removed, 'retained_source_count' => \count(array_intersect($ids, $after)), 'attached_torrents' => $after];
         });
     }
 

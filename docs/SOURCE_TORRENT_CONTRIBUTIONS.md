@@ -51,7 +51,11 @@ The first source operation snapshots existing pivots as independent support
 under the recipient row lock. Existing API and web attach actions explicitly
 record independent support even if a source already supplies the pivot. Their
 remove actions clear independent support and preserve every active source.
-The broad remove response reports retained source-supported torrents.
+The broad remove response keeps the production `torrents_removed`,
+`torrent_ids` and `reason` fields. Its IDs and count describe only attachments
+actually removed under the recipient lock. Additive `removed_count`,
+`retained_source_count` and `source_contributions_preserved` fields distinguish
+access still supported by an active purchase.
 
 All these paths lock the same recipient row. MySQL uses fresh statement
 snapshots under `READ COMMITTED`; SQLite tests use `BEGIN IMMEDIATE`. The

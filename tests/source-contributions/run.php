@@ -174,6 +174,7 @@ $checks++;
 
 $removed = $ledger->removeIndependent(1);
 check($removed['retained_source_count'] === 1 && attached($pdo, 13) && !attached($pdo, 10) && !attached($pdo, 12), 'Broad remove clears only independent support');
+check($removed['removed_count'] === 2 && $removed['removed_torrent_ids'] === [10, 12], 'Removal receipt excludes retained source access and duplicate baseline pivots');
 $ledger->apply(98, 'shared-a', payload([13], 2, 'withdrawn', 'shared-a-2'), $instance);
 check(!attached($pdo, 13), 'Final source withdraw removes unsupported pivot');
 $checks++;
@@ -262,7 +263,10 @@ $checks++;
 // Exercise the actual controller with Laravel Request/JsonResponse. The
 // inherited base controller is irrelevant to these self-contained endpoints.
 $capsule->getConnection()->reconnect();
-eval('namespace App\\Http\\Controllers\\API; class BaseController {}');
+eval('namespace App\\Http\\Controllers\\API; class BaseController {
+    public function sendResponse($data, $message) { return new \\Illuminate\\Http\\JsonResponse(["success" => true, "data" => $data, "message" => $message]); }
+    public function sendError($message, $errors = [], $status = 404) { return new \\Illuminate\\Http\\JsonResponse(["success" => false, "message" => $message, "errors" => $errors], $status); }
+}');
 function response(): object
 {
     return new class () {
@@ -296,6 +300,49 @@ check($wrong->getStatusCode() === 409 && !attached($pdo, 23), 'Forged caller sco
 $valid = $controller->update(requestFixture($owner, 'PUT', payload([23], 1, 'active', 'controller-1'), ['X-Torrent-Caller' => '99', 'X-Torrent-Ledger-Instance' => $instance]), 'controller');
 check($valid->getStatusCode() === 200 && $valid->getData(true)['data']['complete'], 'Actual controller applies exact-scoped request');
 check(str_contains((string) $valid->headers->get('Cache-Control'), 'no-store'), 'Responses cannot be cached');
+$checks++;
+
+// Execute the merged production attachment handlers against the isolated
+// database. The fixture supplies only the unchanged auth/response shell and
+// User model table binding; request-validation rules are outside this check.
+$capsule->bootEloquent();
+eval('namespace App\\Models; class User extends \\Illuminate\\Database\\Eloquent\\Model { protected $table = "users"; public $timestamps = false; }');
+$legacyOwner = $owner;
+function auth(): object
+{
+    return new class () {
+        public function user(): ?object
+        {
+            return $GLOBALS['legacyOwner'];
+        }
+    };
+}
+Illuminate\Http\Request::macro('validate', fn (array $rules): array => $this->all());
+
+require __DIR__.'/../../app/Http/Controllers/API/UserController.php';
+$legacy = new App\Http\Controllers\API\UserController();
+$legacyInput = ['email' => 'OTHER@EXAMPLE.TEST', 'reason' => 'Portal unlink'];
+$legacyRequest = Illuminate\Http\Request::create('/api/user/remove-all-torrents', 'POST', $legacyInput);
+$other = payload([24], 1, 'active', 'legacy-source-1');
+$other['username'] = 'other_customer';
+$other['email'] = 'other@example.test';
+$ledger->apply(99, 'legacy-source', $other, $instance);
+$ledger->attachIndependent(2, [25]);
+$legacyOwner = (object) ['id' => 98, 'group' => (object) ['is_owner' => false]];
+check($legacy->removeAllTorrents($legacyRequest)->getStatusCode() === 403, 'Legacy removal still requires owner');
+$legacyOwner = $owner;
+$legacyResult = $legacy->removeAllTorrents($legacyRequest);
+$legacyData = $legacyResult->getData(true)['data'];
+check($legacyResult->getStatusCode() === 200 && $legacyData['torrents_removed'] === 1 && $legacyData['removed_count'] === 1 && $legacyData['torrent_ids'] === [25], 'Live legacy removal response reports only actually removed torrents');
+check($legacyData['reason'] === 'Portal unlink' && $legacyData['email'] === 'other@example.test' && $legacyData['retained_source_count'] === 1 && $legacyData['source_contributions_preserved'], 'Production reason and case-insensitive lookup are retained');
+check($ledger->read(99, 'legacy-source', $instance)['resources'][0]['effective_access'], 'Legacy unlink preserves the active source attachment');
+$attachRequest = Illuminate\Http\Request::create('/api/user/torrents', 'POST', ['email' => 'OTHER@EXAMPLE.TEST', 'torrent_sku' => [24, 26]]);
+$attachedResult = $legacy->attachTorrents($attachRequest)->getData(true)['data'];
+check($attachedResult['previous_count'] === 1 && $attachedResult['attached_torrents'] === [24, 26] && $attachedResult['newly_attached'] === [26] && $attachedResult['all_verified'], 'Merged attach handler retains live lookup and reports exact new attachments');
+$other['generation'] = 2;
+$other['desired'] = 'withdrawn';
+$other['idempotency_key'] = 'legacy-source-2';
+check($ledger->apply(99, 'legacy-source', $other, $instance)['resources'][0]['effective_access'], 'Independent support added through actual legacy controller survives source withdrawal');
 $checks++;
 
 echo 'PASS '.$checks.' contribution regression groups on '.($sqlite ? 'SQLite' : 'MySQL')."; real migration, concurrent transactions, scope and controller boundaries.\n";
