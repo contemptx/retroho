@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
+use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use Laravel\Fortify\Http\Controllers\PasswordResetLinkController;
@@ -43,10 +44,11 @@ if (config('unit3d.root_url_override')) {
 // Auto-login via one-time token (no language middleware needed)
 Route::get('/auto-login/{token}', [AutoLoginController::class, 'login'])->name('auto.login');
 
-// Registration disabled - redirect to portal message
-Route::get("/register/{code?}", function() {
-    return view("auth.registration-disabled");
-})->where("code", ".*")->name("register");
+// Keep portal-only registration independent of Fortify's public handlers.
+if (!Features::enabled(Features::registration())) {
+    Route::view('/register/{code?}', 'auth.registration-disabled')
+        ->where('code', '.*')->name('register');
+}
 
 
 Route::middleware('language')->group(function (): void {
@@ -60,12 +62,14 @@ Route::middleware('language')->group(function (): void {
         ->middleware(['throttle:'.config('fortify.limiters.fortify-login-get'), 'guest:'.config('fortify.guard')])
         ->name('login');
 
-    Route::get(RoutePath::for('register', '/register'), [RegisteredUserController::class, 'create'])
-        ->middleware(['throttle:'.config('fortify.limiters.fortify-register-get'), 'guest:'.config('fortify.guard')])
-        ->name('register');
+    if (Features::enabled(Features::registration())) {
+        Route::get(RoutePath::for('register', '/register'), [RegisteredUserController::class, 'create'])
+            ->middleware(['throttle:'.config('fortify.limiters.fortify-register-get'), 'guest:'.config('fortify.guard')])
+            ->name('register');
 
-    Route::post(RoutePath::for('register', '/register'), [RegisteredUserController::class, 'store'])
-        ->middleware(['throttle:'.config('fortify.limiters.fortify-register-post'), 'guest:'.config('fortify.guard')]);
+        Route::post(RoutePath::for('register', '/register'), [RegisteredUserController::class, 'store'])
+            ->middleware(['throttle:'.config('fortify.limiters.fortify-register-post'), 'guest:'.config('fortify.guard')]);
+    }
 
     Route::get(RoutePath::for('password.request', '/forgot-password'), [PasswordResetLinkController::class, 'create'])
         ->middleware(['throttle:'.config('fortify.limiters.fortify-forgot-password-get'), 'guest:'.config('fortify.guard')])
@@ -95,7 +99,9 @@ Route::middleware('language')->group(function (): void {
 
         // This redirect must be kept until all invite emails that use the old syntax have expired
         // Hack so that Fortify can be used (allows query parameters but not route parameters)
-        Route::get('/register/{code?}', fn (string $code) => to_route('register', ['code' => $code]));
+        if (Features::enabled(Features::registration())) {
+            Route::get('/register/{code?}', fn (string $code) => to_route('register', ['code' => $code]));
+        }
     });
 
     /*

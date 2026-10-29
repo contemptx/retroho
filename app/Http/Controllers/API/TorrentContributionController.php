@@ -9,6 +9,7 @@ use App\Services\TorrentContributionLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use JsonException;
 use Throwable;
 
 final class TorrentContributionController extends BaseController
@@ -31,7 +32,20 @@ final class TorrentContributionController extends BaseController
                 throw new TorrentContributionException('INVALID_REQUEST', 422);
             }
 
-            return $ledger->apply($caller, $contributionId, $request->json()->all(), $this->scope($request, $caller));
+            // Authenticate middleware merges api_token into the decoded input.
+            // Validate the original client JSON so its strict field whitelist
+            // cannot confuse injected credentials with contribution data.
+            try {
+                $input = json_decode($request->getContent(), true, 32, JSON_THROW_ON_ERROR);
+            } catch (JsonException) {
+                throw new TorrentContributionException('INVALID_REQUEST', 422);
+            }
+
+            if (!\is_array($input) || array_is_list($input)) {
+                throw new TorrentContributionException('INVALID_REQUEST', 422);
+            }
+
+            return $ledger->apply($caller, $contributionId, $input, $this->scope($request, $caller));
         });
     }
 
@@ -55,7 +69,9 @@ final class TorrentContributionController extends BaseController
                 throw new TorrentContributionException('UNAUTHORIZED', 403);
             }
 
-            if ($request->query->count() !== 0) {
+            // Read the original URL query string; Authenticate middleware may
+            // have merged its Bearer token into the mutable query input bag.
+            if ($request->getQueryString() !== null) {
                 throw new TorrentContributionException('INVALID_REQUEST', 422);
             }
             $result = $operation(new TorrentContributionLedger(DB::connection()->getPdo()), (int) $caller->id);
