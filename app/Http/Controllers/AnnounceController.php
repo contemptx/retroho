@@ -187,6 +187,8 @@ final class AnnounceController extends Controller
             ->first();
 
         return $peer !== null
+            // A state transition must pass normal slot checks and accounting.
+            && (bool) $peer->seeder === ($queries->left === 0)
             && $peer->updated_at !== null
             && $peer->updated_at->gte(now()->subHours(2));
     }
