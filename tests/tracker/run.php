@@ -544,6 +544,29 @@ namespace {
         check(ProcessAnnounce::$dispatched === [], 'Neither denied request dispatches');
     };
 
+
+    $tests['seed state changes cannot bypass slot accounting through early acknowledgement'] = static function (): void {
+        foreach ([true, false] as $wasSeeder) {
+            Peer::query()->delete();
+            Redis::swap(new MemoryRedis());
+            ProcessAnnounce::$dispatched = [];
+            peer(1, seeder: $wasSeeder, userId: 1, peerId: 'current-peer-0000000')->save();
+            cache()->values['group:2']->download_slots = 0;
+            invoke('checkMinInterval', torrent([]), query(), user());
+            $response = (new AnnounceController())->index(requestFixture(left: $wasSeeder ? 1000 : 0, event: ''), str_repeat('a', 32));
+            check(str_contains($response->getContent(), 'failure reason'), 'A changed seed state must wait for ordinary processing');
+            check(ProcessAnnounce::$dispatched === [], 'Early state transitions cannot change accounting');
+            check(!isset(Redis::getFacadeRoot()->hashes[outcomeKey()]['deferred_162_duplicate']), 'Changed state cannot receive deferred success');
+        }
+    };
+    $tests['unchanged active leecher retains early acknowledgement'] = static function (): void {
+        peer(1, seeder: false, userId: 1, peerId: 'current-peer-0000000')->save();
+        invoke('checkMinInterval', torrent([]), query(), user());
+        $response = (new AnnounceController())->index(requestFixture(left: 1000, event: ''), str_repeat('a', 32));
+        check(!str_contains($response->getContent(), 'failure reason'), 'Same-state active leecher is acknowledged');
+        check(ProcessAnnounce::$dispatched === [], 'Acknowledgement must not double-account the leecher');
+    };
+
     if (getenv('TRACKER_TEST_REDIS_HOST')) {
         $tests['real Redis NX GET lifecycle and private metrics TTL'] = static function (): void {
             $host = getenv('TRACKER_TEST_REDIS_HOST');
