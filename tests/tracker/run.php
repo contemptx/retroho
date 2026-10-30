@@ -224,6 +224,10 @@ namespace {
                 $entry = null;
             }
 
+            if ($command === 'TTL') {
+                return $entry === null ? -2 : $entry['expires'] - now()->timestamp;
+            }
+
             if ($command === 'DEL') {
                 unset($this->values[$key]);
 
@@ -469,6 +473,77 @@ namespace {
         check(Redis::getFacadeRoot()->hashes === [outcomeKey() => ['internal_error' => 1]], 'Only fixed allowlisted fields can be stored');
     };
 
+
+    $tests['known routine early announce is acknowledged without accounting'] = static function (): void {
+        $p = peer(1, userId: 1, peerId: 'current-peer-0000000');
+        $p->save();
+        $controller = new AnnounceController();
+        $controller->index(requestFixture(event: ''), str_repeat('a', 32));
+        $timer = config('cache.prefix').'peer-last-announced:1-1-current-peer-0000000';
+        $expiry = Redis::getFacadeRoot()->values[$timer]['expires'];
+        $original = Peer::find(1)->getAttributes();
+        Carbon::setTestNow(now()->addSeconds(60));
+        $response = $controller->index(requestFixture(event: ''), str_repeat('a', 32));
+        $offset = 0;
+        $body = decode($response->getContent(), $offset);
+        check(!isset($body['failure reason']) && $body['complete'] === 1, 'Known peer gets accurate non-failure response');
+        check($body['interval'] === $expiry - now()->timestamp && $body['min interval'] === $body['interval'], 'Reply uses remaining timer, not another full delay');
+        check(count(ProcessAnnounce::$dispatched) === 1, 'Early request must not dispatch transfer/history writes');
+        check(Peer::find(1)->getAttributes() === $original, 'Acknowledgement must not mutate counters or last seen');
+        check(Redis::getFacadeRoot()->values[$timer]['expires'] === $expiry, 'Acknowledgement must not extend original timer');
+        check(Redis::getFacadeRoot()->hashes[outcomeKey()]['deferred_162_interval'] === 1, 'Deferred request has its own outcome');
+        Carbon::setTestNow(Carbon::createFromTimestamp($expiry + 1, 'UTC'));
+        $response = $controller->index(requestFixture(event: ''), str_repeat('a', 32));
+        check(!str_contains($response->getContent(), 'failure reason'), 'Next due request succeeds');
+        check(count(ProcessAnnounce::$dispatched) === 2, 'Normal accounting resumes after original timer expires');
+    };
+    $tests['known duplicate routine announces do not produce tracker errors'] = static function (): void {
+        peer(1, userId: 1, peerId: 'current-peer-0000000')->save();
+        $controller = new AnnounceController();
+        $controller->index(requestFixture(event: ''), str_repeat('a', 32));
+        $response = $controller->index(requestFixture(event: ''), str_repeat('a', 32));
+        check(!str_contains($response->getContent(), 'failure reason'), 'Duplicate routine request is acknowledged');
+        check(count(ProcessAnnounce::$dispatched) === 1, 'Duplicate must not be processed twice');
+        check(Redis::getFacadeRoot()->hashes[outcomeKey()]['deferred_162_duplicate'] === 1, 'Duplicate is observable separately');
+    };
+    $tests['invisible stopped expired and foreign peers retain rejection'] = static function (): void {
+        foreach (['invisible', 'stopped', 'expired', 'foreign'] as $case) {
+            Peer::query()->delete();
+            Redis::swap(new MemoryRedis());
+            ProcessAnnounce::$dispatched = [];
+            $p = peer(1, visible: $case !== 'invisible', active: $case !== 'stopped', userId: $case === 'foreign' ? 2 : 1, peerId: 'current-peer-0000000');
+            $p->updated_at = $case === 'expired' ? now()->subHours(3) : now();
+            $p->save();
+            invoke('checkMinInterval', torrent([]), query(), user());
+            $response = (new AnnounceController())->index(requestFixture(event: ''), str_repeat('a', 32));
+            check(str_contains($response->getContent(), 'failure reason'), 'Do not acknowledge '.$case.' peer');
+            check(ProcessAnnounce::$dispatched === [], 'Rejected request has no accounting side effects');
+        }
+    };
+    $tests['lifecycle events never use routine acknowledgement'] = static function (): void {
+        peer(1, userId: 1, peerId: 'current-peer-0000000')->save();
+        $controller = new AnnounceController();
+        $controller->index(requestFixture(event: 'started'), str_repeat('a', 32));
+        $repeat = $controller->index(requestFixture(event: 'started'), str_repeat('a', 32));
+        check(str_contains($repeat->getContent(), 'failure reason'), 'Duplicate lifecycle guard preserved');
+        check(count(ProcessAnnounce::$dispatched) === 1, 'Lifecycle repeats not double processed');
+        Carbon::setTestNow(now()->addSeconds(5));
+        $stopped = $controller->index(requestFixture(event: 'stopped'), str_repeat('a', 32));
+        check(!str_contains($stopped->getContent(), 'failure reason') && count(ProcessAnnounce::$dispatched) === 2, 'Stop is processed rather than acknowledged');
+    };
+    $tests['revoked download rights and banned accounts cannot use acknowledgement'] = static function (): void {
+        peer(1, seeder: false, userId: 1, peerId: 'current-peer-0000000')->save();
+        invoke('checkMinInterval', torrent([]), query(), user());
+        cache()->values['user:'.str_repeat('a', 32)]->can_download = false;
+        $denied = (new AnnounceController())->index(requestFixture(left: 1000, event: ''), str_repeat('a', 32));
+        check(str_contains($denied->getContent(), 'failure reason'), 'Download-rights check remains before acknowledgement');
+        cache()->values['user:'.str_repeat('a', 32)]->can_download = true;
+        cache()->values['denied_groups']->banned_id = 2;
+        $banned = (new AnnounceController())->index(requestFixture(event: ''), str_repeat('a', 32));
+        check(str_contains($banned->getContent(), 'failure reason'), 'Banned group cannot receive peers');
+        check(ProcessAnnounce::$dispatched === [], 'Neither denied request dispatches');
+    };
+
     if (getenv('TRACKER_TEST_REDIS_HOST')) {
         $tests['real Redis NX GET lifecycle and private metrics TTL'] = static function (): void {
             $host = getenv('TRACKER_TEST_REDIS_HOST');
@@ -530,6 +605,7 @@ namespace {
         Redis::swap(new MemoryRedis());
         Container::getInstance()->instance('cache', new MemoryCache());
         ProcessAnnounce::$dispatched = [];
+        Peer::query()->delete();
 
         try {
             $test();

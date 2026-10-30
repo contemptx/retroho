@@ -51,6 +51,7 @@ final class AnnounceController extends Controller
     // Aggregate operational outcomes only. No request or customer identifiers.
     private const OUTCOME_FIELDS = [
         'success', 'warning_164', 'internal_error',
+        'deferred_162_duplicate', 'deferred_162_interval',
         'rejected_120', 'rejected_121', 'rejected_122', 'rejected_123', 'rejected_128', 'rejected_129',
         'rejected_130', 'rejected_131', 'rejected_132', 'rejected_133', 'rejected_134', 'rejected_135', 'rejected_136', 'rejected_138',
         'rejected_140', 'rejected_141', 'rejected_142', 'rejected_150', 'rejected_151', 'rejected_152', 'rejected_162',
@@ -118,8 +119,24 @@ final class AnnounceController extends Controller
             // Check if a user is announcing a torrent as completed but no peer is in db.
             $this->checkPeer($torrent, $queries, $user);
 
-            // Lock Min Announce Interval.
-            $this->checkMinInterval($torrent, $queries, $user);
+            // A routine repeat from a known live peer is not an authentication
+            // failure. Acknowledge it without enqueueing accounting a second time.
+            try {
+                $this->checkMinInterval($torrent, $queries, $user);
+            } catch (TrackerException $exception) {
+                if ($exception->getCode() !== 162 || !$this->canDeferRoutineAnnounce($torrent, $queries, $user)) {
+                    throw $exception;
+                }
+
+                $key = config('cache.prefix').'peer-last-announced:'.$user->id.'-'.$torrent->id.'-'.$queries->getPeerId();
+                $remaining = (int) Redis::connection('announce')->command('TTL', [$key]);
+                $response = $this->generateSuccessAnnounceResponse($queries, $torrent, $user, max(30, min(self::MIN, $remaining)));
+                $outcome = $this->intervalRejection === 'rejected_162_duplicate'
+                    ? 'deferred_162_duplicate'
+                    : 'deferred_162_interval';
+
+                return $this->sendFinalAnnounceResponse($response);
+            }
 
             // Check User Max Connections Per Torrent.
             $this->checkMaxConnections($torrent, $user, $queries);
@@ -152,6 +169,26 @@ final class AnnounceController extends Controller
         }
 
         return $this->sendFinalAnnounceResponse($response);
+    }
+
+    private function canDeferRoutineAnnounce(Torrent $torrent, AnnounceQueryDTO $queries, User $user): bool
+    {
+        // Lifecycle events still need their existing validation and processing.
+        // Never acknowledge an unknown, stopped, invisible or expired peer.
+        if ($queries->event !== '') {
+            return false;
+        }
+
+        $peer = $torrent->peers
+            ->where('user_id', '=', $user->id)
+            ->where('peer_id', '=', $queries->getPeerId())
+            ->where('active', '=', true)
+            ->where('visible', '=', true)
+            ->first();
+
+        return $peer !== null
+            && $peer->updated_at !== null
+            && $peer->updated_at->gte(now()->subHours(2));
     }
 
     private function recordAnnounceOutcome(string $outcome): void
@@ -640,7 +677,7 @@ final class AnnounceController extends Controller
      *
      * @throws RandomException
      */
-    private function generateSuccessAnnounceResponse(AnnounceQueryDTO $queries, Torrent $torrent, User $user): string
+    private function generateSuccessAnnounceResponse(AnnounceQueryDTO $queries, Torrent $torrent, User $user, ?int $retryAfter = null): string
     {
         $peersIpv4 = '';
         $peersIpv6 = '';
@@ -689,9 +726,9 @@ final class AnnounceController extends Controller
             .'e10:incompletei'
             .$leecherCount
             .'e8:intervali'
-            .random_int(self::MIN, self::MAX)
+            .($retryAfter ?? random_int(self::MIN, self::MAX))
             .'e12:min intervali'
-            .random_int(intdiv(self::MIN * 95, 100), self::MIN)
+            .($retryAfter ?? random_int(intdiv(self::MIN * 95, 100), self::MIN))
             .'e';
 
         if ($peersIpv6 === '') {
