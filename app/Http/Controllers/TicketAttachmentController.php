@@ -43,13 +43,21 @@ class TicketAttachmentController extends Controller
                 continue;
             }
 
-            $allowedMimes = ['image/jpeg', 'image/jpg', 'image/bmp', 'image/gif', 'image/png', 'image/webp'];
+            $extensionsByMimeType = [
+                'image/jpeg' => 'jpg',
+                'image/jpg' => 'jpg',
+                'image/bmp' => 'bmp',
+                'image/gif' => 'gif',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+            ];
+            $mimeType = $file->getMimeType();
 
-            if (! \in_array($file->getMimeType(), $allowedMimes)) {
+            if (! isset($extensionsByMimeType[$mimeType])) {
                 continue;
             }
 
-            $fileName = uniqid('', true).'.'.$file->getClientOriginalExtension();
+            $fileName = uniqid('', true).'.'.$extensionsByMimeType[$mimeType];
             $file->storeAs('attachments', $fileName, 'attachments');
 
             $attachment = new TicketAttachment();
@@ -57,7 +65,7 @@ class TicketAttachmentController extends Controller
             $attachment->ticket_id = $ticket->id;
             $attachment->file_name = $fileName;
             $attachment->file_size = $file->getSize();
-            $attachment->file_extension = $file->getMimeType();
+            $attachment->file_extension = $mimeType;
             $attachment->save();
         }
     }

@@ -47,7 +47,7 @@ class AttachmentUpload extends Component
     {
         $this->validate();
 
-        $fileName = uniqid('', true).'.'.$this->attachment->getClientOriginalExtension();
+        $fileName = uniqid('', true).'.'.$this->attachment->guessExtension();
 
         $this->attachment->storeAs('attachments', $fileName, 'attachments');
 
