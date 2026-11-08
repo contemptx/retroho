@@ -47,11 +47,17 @@ class AutoUpdateUserLastActions extends Command
     {
         $key = config('cache.prefix').':user-last-actions:batch';
 
-        $userIdCount = Redis::command('LLEN', [$key]);
+        $userIdCount = (int) Redis::command('LLEN', [$key]);
+
+        if ($userIdCount === 0) {
+            $this->comment('Automated upsert histories command complete');
+
+            return;
+        }
 
         $userIds = Redis::command('LPOP', [$key, $userIdCount]);
 
-        if ($userIds !== false) {
+        if (is_array($userIds) && $userIds !== []) {
             DB::transaction(static function () use ($userIds): void {
                 DB::table('users')
                     ->whereIntegerInRaw('id', $userIds)
